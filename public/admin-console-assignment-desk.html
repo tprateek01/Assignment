@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#18224a" media="(prefers-color-scheme: dark)">
 <title>Assignment Desk – Admin Console</title>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
@@ -13,7 +15,8 @@ box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:en
 :root[data-theme="dark"]{--page:#0b1226;--card:#18224a;--ink:#e9eeff;--muted:#a3afd4;--rule:#2a3862;--field:#0f1730;--wa:#2bc46f;--wa-ink:#06210f;--bad:#ff7a80;--me:#4a4320;--cust:#26386e}
 html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}
 *{box-sizing:border-box}
-body{margin:0;height:100%;background:var(--page);color:var(--ink);font-family:"Bricolage Grotesque",system-ui,sans-serif;line-height:1.45;display:flex;flex-direction:column}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{margin:0;height:100%;height:100dvh;background:var(--page);color:var(--ink);font-family:"Bricolage Grotesque",system-ui,sans-serif;line-height:1.45;display:flex;flex-direction:column}
 :focus-visible{outline:3px solid var(--hi);outline-offset:2px}
 header{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;justify-content:space-between;padding:12px 18px;background:var(--card);border-bottom:1px solid var(--rule)}
 header h1{margin:0;font-size:1.15rem;font-weight:800}
@@ -22,7 +25,10 @@ button{font:inherit;font-weight:600;font-size:.9rem;border:1px solid var(--rule)
 button.pri{background:var(--ink);color:var(--card);border-color:var(--ink)}
 button.danger{color:var(--bad)}
 button:disabled{opacity:.55}
-.app{flex:1;min-height:0;display:grid;grid-template-columns:340px 1fr}
+.app{flex:1;min-height:0;display:grid;grid-template-columns:340px minmax(0,1fr)}
+.detail>*,.list>*{min-width:0}
+.card,.item,.empty{overflow-wrap:anywhere}
+.filerow a,.row a{white-space:nowrap}
 .list{border-right:1px solid var(--rule);overflow:auto;padding:12px;display:flex;flex-direction:column;gap:8px}
 .item{background:var(--card);border:2px solid transparent;border-radius:10px;padding:10px 12px;cursor:pointer;text-align:left;width:100%;display:block;font-weight:400}
 .item.on{border-color:var(--ink)}.item b{display:block}.item small{color:var(--muted)}
@@ -51,7 +57,7 @@ textarea{resize:vertical;min-height:60px}
 .bar i{display:block;height:100%;background:var(--wa);border-radius:99px;transition:width .4s}
 label.chk{display:flex;align-items:center;gap:8px;font-size:.9rem;color:var(--ink);font-weight:600}
 label.chk input{width:auto;margin:0}
-.lnk{color:var(--ink);font-weight:600}
+.lnk{color:var(--ink);font-weight:600;display:inline-flex;align-items:center;min-height:40px;padding:0 14px;border:1px solid var(--rule);border-radius:8px;background:var(--field);text-decoration:none}
 .filerow{display:flex;justify-content:space-between;gap:8px;align-items:center;background:var(--field);border:1px solid var(--rule);border-radius:8px;padding:6px 10px;margin-top:6px;font-size:.9rem;overflow-wrap:anywhere}
 .lines{display:grid;grid-template-columns:1fr auto;gap:2px 12px;font-size:.88rem;margin:8px 0 0;color:var(--muted)}.lines dd{margin:0;text-align:right;color:var(--ink);font-weight:600}.lines dt{margin:0}
 @media (prefers-reduced-motion:reduce){.bar i{transition:none}}
@@ -60,7 +66,25 @@ label.chk input{width:auto;margin:0}
 body.locked header,body.locked .app{display:none}body:not(.locked) #login{display:none}
 dialog{border:0;padding:8px;background:transparent;max-width:92vw}dialog::backdrop{background:rgba(5,10,30,.7)}dialog img{max-width:90vw;max-height:85vh;border-radius:10px}
 [hidden]{display:none!important}
-@media (max-width:820px){.app{grid-template-columns:1fr}.detail{display:none}.app.show .detail{display:grid}.app.show .list{display:none}.back{display:inline-block}}
+@media (max-width:820px){
+  .app{grid-template-columns:minmax(0,1fr)}.detail{display:none}.app.show .detail{display:grid}.app.show .list{display:none}
+  .back{display:block;position:sticky;top:0;z-index:5;width:100%;text-align:left}
+  header{padding:10px max(14px,env(safe-area-inset-right,0px)) 10px max(14px,env(safe-area-inset-left,0px));gap:8px}
+  header h1{font-size:1.05rem;width:100%}
+  .stats{flex-wrap:nowrap;overflow-x:auto;white-space:nowrap;width:100%;gap:14px;padding-bottom:2px}
+  header>.row{width:100%}header>.row button{flex:1}
+  button,input:not([type=checkbox]),select{min-height:44px}
+  input,select,textarea{font-size:16px}
+  label.chk input{width:22px;height:22px}
+  .list{padding:10px}.item{padding:12px}
+  .detail{padding:12px;gap:12px}
+  .card{padding:14px}
+  .total{font-size:1.6rem}
+  .thread{max-height:50vh}.b{max-width:92%}
+  .row .pri{flex:1 1 auto}
+  .pic{width:72px;height:72px}
+  .filerow{flex-wrap:wrap}
+}
 </style>
 </head>
 <body class="locked">
@@ -144,7 +168,7 @@ dialog{border:0;padding:8px;background:transparent;max-width:92vw}dialog::backdr
     $('items').innerHTML = ids.map(function(k){var o = S[k], i = o.info, l = last(o), s = status(o), pr = o.progress;
       return '<button class="item'+(k===cur?' on':'')+'" data-id="'+k+'"><b>'+(l && l.who==='cust' && s!=='Paid' ? '<span class="dot" title="Customer wrote last"></span>' : '')+esc(i.name)+((o.pdfs||[]).length ? ' 📄' : '')+'</b><span class="chip '+s.replace(' ','')+'">'+s+'</span><small>'+esc(i.subject)+' · '+esc(i.pages)+' pg'+(o.quote?' · '+inr(total(o)):'')+(pr ? ' · '+pr.done+'/'+esc(i.pages)+' done' : '')+'</small></button>'}).join('') || '<p class="empty">'+(Object.keys(S).length ? 'No matching requests.' : 'No requests yet. They appear here when a customer sends one.')+'</p>';
   }
-  $('items').onclick = function(e){var b = e.target.closest('.item'); if(!b) return; cur = b.getAttribute('data-id'); sig = ''; $('app').classList.add('show'); list(); detail()};
+  $('items').onclick = function(e){var b = e.target.closest('.item'); if(!b) return; cur = b.getAttribute('data-id'); sig = ''; $('app').classList.add('show'); list(); detail(); $('detail').scrollTop = 0};
 
   /* ---------- rush helper ---------- */
   // days between the day the request was sent and the customer's deadline

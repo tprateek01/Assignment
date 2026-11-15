@@ -3,6 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#eef2fb" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b1226" media="(prefers-color-scheme: dark)">
 <title>Assignment Desk – Request an assignment and agree the price</title>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&family=Caveat:wght@600&display=swap" rel="stylesheet">
 <style>
@@ -42,7 +44,8 @@ input,select,textarea{font:inherit;color:var(--ink);background:var(--field);bord
 textarea{min-height:96px;resize:vertical}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .seg{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg span{position:relative;display:block;min-width:0}
+.seg input{position:absolute;opacity:0;pointer-events:none;width:1px;height:1px;min-height:0;left:0;top:0}
 .seg label{margin:0;border:2px solid var(--rule);border-radius:10px;padding:10px 12px;cursor:pointer;color:var(--ink);background:var(--field)}
 .seg label small{display:block;color:var(--muted);font-weight:400}
 .seg input:checked+label{border-color:var(--ink);background:var(--hi);color:var(--hi-ink)}
@@ -98,6 +101,43 @@ dialog{border:0;padding:8px;background:transparent;max-width:92vw}dialog::backdr
 .gate{border:2px dashed var(--margin);border-radius:12px;padding:14px;margin-top:12px;display:grid;gap:8px}
 .gate p{margin:0}
 .fine.ok{color:var(--wa)}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+.order>*,.two>*,form>*,.card{min-width:0}
+.info,.b,.prog,.filechip,.offer,.mine button{overflow-wrap:anywhere}
+input[type=date]{min-width:0;max-width:100%}
+.filechip a{white-space:nowrap}
+.wrap{padding-right:max(20px,env(safe-area-inset-right,0px))}
+@media (max-width:640px){
+  body::before{left:10px;width:2px}
+  .wrap{padding:0 max(16px,env(safe-area-inset-right,0px)) 0 max(26px,calc(env(safe-area-inset-left,0px) + 20px))}
+  nav{padding:14px 0}
+  h1{margin:18px 0 12px}
+  .lead{font-size:1.05rem}
+  .note{font-size:1.3rem;display:block;margin-top:8px}
+  section{padding-top:34px}
+  .steps{grid-template-columns:1fr}
+  .two{grid-template-columns:1fr}
+  .card{padding:16px}
+  input:not([type=radio]),select,textarea{font-size:16px;min-height:46px}
+  textarea{min-height:96px}
+  input[type=file]{min-height:0;padding:10px}
+  a.btn,button.btn{min-height:46px;justify-content:center}
+  #submit,.offer .row .btn{flex:1 1 100%;width:100%}
+  .composer .row{flex-direction:column;flex-wrap:nowrap;align-items:stretch}
+  .composer .row .btn{flex:none;width:100%}
+  #mfile{max-width:none!important;width:100%}
+  .chathead{align-items:flex-start}
+  .thread{max-height:min(420px,55vh)}
+  .b{max-width:92%}
+  .filechip span{flex:1 1 auto;min-width:0}
+  .filechip a,.filechip button{flex:none}
+  .filechip a{padding:8px 12px;border:1px solid var(--rule);border-radius:8px}
+  .filechip button{width:34px;height:34px}
+  .thumbs img,.pic{width:84px;height:84px}
+  .total b{font-size:1.8rem}
+  summary{padding:4px 0}
+  footer{padding:32px 0 56px}
+}
 [hidden]{display:none!important}
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.bar i{transition:none}}
 </style>
