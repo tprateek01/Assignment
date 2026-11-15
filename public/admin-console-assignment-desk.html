@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Assignment Desk – Admin Console</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--page:#eef2fb;--card:#fff;--ink:#14214f;--muted:#5b6790;--rule:#d3dcf0;--field:#f3f6fd;--hi:#ffe45e;--hi-ink:#14214f;--wa:#18a957;--wa-ink:#fff;--bad:#d93a40;--me:#fff6c9;--cust:#e3ecff;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--page:#0b1226;--card:#18224a;--ink:#e9eeff;--muted:#a3afd4;--rule:#2a3862;--field:#0f1730;--wa:#2bc46f;--wa-ink:#06210f;--bad:#ff7a80;--me:#4a4320;--cust:#26386e}}
+:root[data-theme="dark"]{--page:#0b1226;--card:#18224a;--ink:#e9eeff;--muted:#a3afd4;--rule:#2a3862;--field:#0f1730;--wa:#2bc46f;--wa-ink:#06210f;--bad:#ff7a80;--me:#4a4320;--cust:#26386e}
+html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}
+*{box-sizing:border-box}
+body{margin:0;height:100%;background:var(--page);color:var(--ink);font-family:"Bricolage Grotesque",system-ui,sans-serif;line-height:1.45;display:flex;flex-direction:column}
+:focus-visible{outline:3px solid var(--hi);outline-offset:2px}
+header{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;justify-content:space-between;padding:12px 18px;background:var(--card);border-bottom:1px solid var(--rule)}
+header h1{margin:0;font-size:1.15rem;font-weight:800}
+.stats{display:flex;gap:16px;font-size:.85rem;color:var(--muted);flex-wrap:wrap}.stats b{color:var(--ink)}
+button{font:inherit;font-weight:600;font-size:.9rem;border:1px solid var(--rule);background:var(--field);color:var(--ink);padding:8px 14px;border-radius:8px;cursor:pointer}
+button.pri{background:var(--ink);color:var(--card);border-color:var(--ink)}
+button.danger{color:var(--bad)}
+button:disabled{opacity:.55}
+.app{flex:1;min-height:0;display:grid;grid-template-columns:340px 1fr}
+.list{border-right:1px solid var(--rule);overflow:auto;padding:12px;display:flex;flex-direction:column;gap:8px}
+.item{background:var(--card);border:2px solid transparent;border-radius:10px;padding:10px 12px;cursor:pointer;text-align:left;width:100%;display:block;font-weight:400}
+.item.on{border-color:var(--ink)}.item b{display:block}.item small{color:var(--muted)}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--bad);margin-right:6px}
+.chip{display:inline-block;font-size:.72rem;font-weight:700;padding:1px 8px;border-radius:99px;background:var(--hi);color:var(--hi-ink);margin-right:6px}
+.chip.Agreed,.chip.Paid{background:var(--wa);color:var(--wa-ink)}.chip.Cancelled{background:var(--rule);color:var(--muted)}
+.detail{overflow:auto;padding:16px;display:grid;gap:14px;align-content:start}
+.empty{color:var(--muted);padding:40px 10px;text-align:center}
+.card{background:var(--card);border:1px solid var(--rule);border-radius:12px;padding:16px}
+.card h2{margin:0 0 10px;font-size:1rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;align-items:end}
+label{display:grid;gap:4px;font-size:.8rem;color:var(--muted);font-weight:600}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--field);border:1px solid var(--rule);border-radius:8px;padding:8px 10px;width:100%}
+textarea{resize:vertical;min-height:60px}
+.total{font-size:1.8rem;font-weight:800;letter-spacing:-.02em}
+.thread{display:flex;flex-direction:column;gap:8px;max-height:340px;overflow:auto;padding:4px 2px 10px}
+.b{max-width:82%;padding:8px 12px;border-radius:12px;white-space:pre-wrap;overflow-wrap:anywhere;font-size:.93rem}
+.b small{display:block;color:var(--muted);font-size:.72rem}
+.b.admin{background:var(--me);align-self:flex-end}.b.cust{background:var(--cust);align-self:flex-start}
+.pic{width:84px;height:84px;object-fit:cover;border-radius:8px;border:1px solid var(--rule);cursor:zoom-in;background:var(--field);margin-top:6px}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center}
+.fine{font-size:.78rem;color:var(--muted);margin:6px 0 0}
+.err{color:var(--bad);font-size:.85rem;min-height:1.2em;margin:0}
+.back{display:none}
+#login{position:fixed;inset:0;display:grid;place-items:center;background:var(--page);z-index:50;padding:20px}
+.lcard{width:min(380px,100%);display:grid;gap:12px}.lcard h2{margin:0}
+body.locked header,body.locked .app{display:none}body:not(.locked) #login{display:none}
+dialog{border:0;padding:8px;background:transparent;max-width:92vw}dialog::backdrop{background:rgba(5,10,30,.7)}dialog img{max-width:90vw;max-height:85vh;border-radius:10px}
+[hidden]{display:none!important}
+@media (max-width:820px){.app{grid-template-columns:1fr}.detail{display:none}.app.show .detail{display:grid}.app.show .list{display:none}.back{display:inline-block}}
+</style>
+</head>
+<body class="locked">
+<div id="login"><form class="card lcard" id="lform">
+  <h2>Admin login</h2>
+  <p class="fine" id="lp">Sign in with the admin email and password from your server settings.</p>
+  <label>Email<input type="email" id="em" autocomplete="username" required></label>
+  <label>Password<input type="password" id="pw" autocomplete="current-password" required></label>
+  <p class="err" id="lerr" role="alert"></p>
+  <button class="pri" type="submit" id="lbtn">Log in</button>
+</form></div>
+
+<header>
+  <h1>Assignment Desk · Admin</h1>
+  <div class="stats"><span>New: <b id="sNew">0</b></span><span>Waiting for your reply: <b id="sWait">0</b></span><span>To collect: <b id="sDue">₹0</b></span><span>Paid: <b id="sPaid">₹0</b></span></div>
+  <div class="row" style="margin:0"><button id="setBtn">Prices</button><button id="lo">Log out</button></div>
+</header>
+
+<div class="app" id="app">
+  <aside class="list"><select id="filter" aria-label="Filter"><option value="">All requests</option></select><div id="items"></div></aside>
+  <main class="detail" id="detail"></main>
+</div>
+
+<dialog id="setDlg"><div class="card" style="min-width:min(420px,86vw)">
+  <h2>Prices shown to customers</h2>
+  <div class="grid"><label>Handwritten (₹ per page)<input type="number" id="rH" min="0"></label><label>Typed (₹ per page)<input type="number" id="rT" min="0"></label>
+  <label>Rush: deadline in 1 day (+%)<input type="number" id="r2" min="0"></label><label>Rush: deadline in 5 days (+%)<input type="number" id="r5" min="0"></label></div>
+  <p class="fine">These set the starting estimate on your website. You still send a final price per request.</p>
+  <div class="row"><button class="pri" id="saveSet">Save prices</button><button id="closeSet">Close</button><span class="fine" id="setMsg"></span></div>
+</div></dialog>
+<dialog id="zoom"><img id="zimg" alt="Enlarged photo"></dialog>
+
+<script src="desk.js"></script>
+<script>
+(function(){
+  var D = window.DESK, $ = function(i){return document.getElementById(i)}, esc = D.esc, inr = D.inr;
+  var RK = 'assignment-desk-admin-refresh-v1', exp = 0, S = {}, cur = null, sig = '', busy = false;
+  var MANUAL = ['In progress','Delivered','Paid','Cancelled'];
+  var rates = {rateH:40, rateT:25, rush2:50, rush5:20};
+
+  /* ---------- login ---------- */
+  var RK = 'assignment-desk-admin-token-v2';
+  async function ensure(){if(!D.token) throw new Error('signed out')}
+  function enter(){document.body.classList.remove('locked'); loadSettings(); poll(); setInterval(function(){if(!document.hidden) poll()}, 4000)}
+  $('lform').onsubmit = async function(e){
+    e.preventDefault(); $('lerr').textContent = ''; $('lbtn').disabled = true;
+    try{
+      var j = await D.api('POST', '/api/admin/login', {email:$('em').value.trim(), password:$('pw').value});
+      D.token = j.token; try{localStorage.setItem(RK, j.token)}catch(x){}
+      $('pw').value = ''; enter();
+    }catch(er){D.token = null; $('lerr').textContent = er.status === 401 ? 'Wrong email or password.' : er.status === 429 ? 'Too many attempts. Wait 15 minutes.' : 'Could not reach the server.'}
+    $('lbtn').disabled = false;
+  };
+  $('lo').onclick = function(){try{localStorage.removeItem(RK)}catch(e){} location.reload()};
+  (async function(){try{var t = localStorage.getItem(RK); if(t){D.token = t; await D.get('orders'); enter()}}catch(e){D.token = null}})();
+
+  /* ---------- data ---------- */
+  function status(o){return o.status || (o.decision === 'accepted' ? 'Agreed' : o.quote ? 'Negotiating' : 'New')}
+  function last(o){var k = Object.keys(o.chat || {}).sort().pop(); return k ? o.chat[k] : null}
+  function total(o){return o.quote ? o.quote.total : 0}
+  async function poll(){
+    try{await ensure(); S = (await D.get('orders')) || {}}catch(e){return}
+    stats(); list(); live();
+  }
+  function stats(){
+    var n = 0, w = 0, due = 0, paid = 0;
+    Object.keys(S).forEach(function(k){var o = S[k], s = status(o), l = last(o);
+      if(s === 'New') n++; if(l && l.who === 'cust' && s !== 'Paid' && s !== 'Cancelled') w++;
+      if(s === 'Paid') paid += total(o); else if(['Agreed','In progress','Delivered'].indexOf(s) > -1) due += total(o)});
+    $('sNew').textContent = n; $('sWait').textContent = w; $('sDue').textContent = inr(due); $('sPaid').textContent = inr(paid);
+  }
+  var fs = $('filter'); ['New','Negotiating','Agreed'].concat(MANUAL).forEach(function(s){var o = document.createElement('option'); o.value = o.textContent = s; fs.appendChild(o)});
+  fs.onchange = list;
+  function list(){
+    var f = fs.value, ids = Object.keys(S).filter(function(k){return S[k].info && (!f || status(S[k]) === f)}).sort(function(a,b){return S[b].info.created - S[a].info.created});
+    $('items').innerHTML = ids.map(function(k){var o = S[k], i = o.info, l = last(o), s = status(o);
+      return '<button class="item'+(k===cur?' on':'')+'" data-id="'+k+'"><b>'+(l && l.who==='cust' && s!=='Paid' ? '<span class="dot" title="Customer wrote last"></span>' : '')+esc(i.name)+'</b><span class="chip '+s.replace(' ','')+'">'+s+'</span><small>'+esc(i.subject)+' · '+esc(i.pages)+' pg'+(o.quote?' · '+inr(total(o)):'')+'</small></button>'}).join('') || '<p class="empty">No requests yet. They appear here when a customer sends one.</p>';
+  }
+  $('items').onclick = function(e){var b = e.target.closest('.item'); if(!b) return; cur = b.getAttribute('data-id'); sig = ''; $('app').classList.add('show'); list(); detail()};
+
+  /* ---------- detail ---------- */
+  function detail(){
+    var o = S[cur], d = $('detail'); if(!o){d.innerHTML = '<p class="empty">Select a request.</p>'; return}
+    var i = o.info, q = o.quote || {}, ppp = q.ppp || (i.type === 'Handwritten' ? rates.rateH : rates.rateT);
+    d.innerHTML = '<button class="back" id="back">← All requests</button>' +
+    '<section class="card"><h2>'+esc(i.name)+' · '+esc(i.subject)+'</h2><div class="fine" style="margin:0 0 8px">'+esc(i.type)+' · '+esc(i.pages)+' pages · deadline '+esc(D.date(i.deadline))+' · customer’s estimate '+esc(i.est||'-')+' · sent '+D.when(i.created)+'</div>'+
+      '<div style="white-space:pre-wrap">'+esc(i.details || 'No written instructions.')+'</div>'+
+      ((i.imgs||[]).length ? '<div class="row">'+i.imgs.map(function(k){return '<img class="pic" data-oid="'+cur+'" data-k="'+esc(k)+'" alt="Photo">'}).join('')+'</div>' : '')+'</section>'+
+    '<section class="card"><h2>Final price</h2><div class="grid"><label>Price per page (₹)<input id="ppp" type="number" min="0" value="'+ppp+'"></label>'+
+      '<label>Extra / discount (₹, use − for discount)<input id="extra" type="number" value="'+(q.extra||0)+'"></label><div><div class="fine" id="calc" style="margin:0"></div><div class="total" id="tot"></div></div></div>'+
+      '<div class="row"><button class="pri" id="offer">Send price offer</button><span class="fine" id="offState"></span></div>'+
+      '<div class="row"><label style="min-width:170px">Status<select id="st"><option value="">Automatic</option>'+MANUAL.map(function(s){return '<option'+(o.status===s?' selected':'')+'>'+s+'</option>'}).join('')+'</select></label></div></section>'+
+    '<section class="card"><h2>Chat</h2><div class="thread" id="thread"></div>'+
+      '<textarea id="msg" rows="2" placeholder="Reply to the customer"></textarea>'+
+      '<div class="row"><button class="pri" id="send">Send</button><input type="file" id="mfile" accept="image/*" style="max-width:220px"><span class="err" id="cerr"></span></div></section>'+
+    '<section class="card"><button class="danger" id="del">Delete this request</button></section>';
+    calc(); live(true); D.fillImages(d);
+  }
+  function calc(){var p = +$('ppp').value || 0, x = +$('extra').value || 0, pg = +S[cur].info.pages || 0;
+    $('calc').textContent = pg+' pages × '+inr(p)+(x ? (x>0?' + ':' − ')+inr(Math.abs(x)) : ''); $('tot').textContent = inr(pg*p + x)}
+  function live(force){
+    var o = S[cur]; if(!o || !$('thread')) return;
+    var n = Object.keys(o.chat||{}).length, s = n + '|' + JSON.stringify(o.quote||'') + '|' + (o.decision||'');
+    if(!force && s === sig) return; sig = s;
+    var t = $('thread'), end = t.scrollHeight - t.scrollTop - t.clientHeight < 80 || !t.children.length;
+    t.innerHTML = Object.keys(o.chat||{}).sort().map(function(k){var m = o.chat[k];
+      return '<div class="b '+(m.who==='admin'?'admin':'cust')+'">'+esc(m.text)+(m.img?'<img class="pic" data-oid="'+cur+'" data-k="'+esc(m.img)+'" alt="Photo">':'')+'<small>'+(m.who==='admin'?'You':esc(o.info.name))+' · '+D.when(m.t)+'</small></div>'}).join('') || '<p class="fine">No messages yet.</p>';
+    if(end) t.scrollTop = t.scrollHeight;
+    $('offState').textContent = o.decision === 'accepted' ? 'Customer accepted ' + inr(total(o)) : o.decision === 'declined' ? 'Customer declined ' + inr(total(o)) : o.quote ? 'Offer sent: ' + inr(total(o)) + ', waiting for the customer' : 'No offer sent yet';
+    D.fillImages(t);
+  }
+  function chatPost(text, img){return D.post('orders/'+cur+'/chat', {who:'admin', text:text, img:img||null, t:Date.now()})}
+  $('detail').addEventListener('input', function(e){if(e.target.id === 'ppp' || e.target.id === 'extra') calc()});
+  $('detail').addEventListener('change', async function(e){
+    if(e.target.id === 'st'){try{await ensure(); await D.put('orders/'+cur+'/status', e.target.value || null); await poll()}catch(x){$('cerr').textContent = 'Could not save status.'}}
+  });
+  $('detail').addEventListener('click', async function(e){
+    var id = e.target.id, o = S[cur]; if(!o || busy) return;
+    if(id === 'back') $('app').classList.remove('show');
+    if(id === 'offer'){
+      var p = +$('ppp').value, x = +$('extra').value || 0, pg = +o.info.pages;
+      if(!(p > 0)){$('cerr').textContent = 'Enter a price per page first.'; return}
+      busy = true; e.target.disabled = true;
+      try{
+        await ensure(); var tt = pg*p + x;
+        await D.put('orders/'+cur+'/quote', {ppp:p, extra:x, pages:pg, total:tt, t:Date.now()});
+        await D.put('orders/'+cur+'/decision', null);
+        await chatPost('Final price offer: '+inr(p)+' per page × '+pg+' pages'+(x?(x>0?' + '+inr(x)+' extra':' − '+inr(-x)+' discount'):'')+' = '+inr(tt)+'. You can accept it above, or tell me what price works for you.');
+        await poll(); live(true);
+      }catch(er){$('cerr').textContent = 'Could not send the offer.'}
+      busy = false; e.target.disabled = false;
+    }
+    if(id === 'send'){
+      var text = $('msg').value.trim(), f = $('mfile').files[0]; if(!text && !f) return;
+      busy = true; e.target.disabled = true; $('cerr').textContent = '';
+      try{
+        await ensure(); var k = null;
+        if(f){k = 'a'+D.id(6); await D.put('images/'+cur+'/'+k, {d: await D.shrink(f, 1000)})}
+        await chatPost(text, k); $('msg').value = ''; $('mfile').value = ''; await poll(); live(true);
+      }catch(er){$('cerr').textContent = 'Message not sent.'}
+      busy = false; e.target.disabled = false;
+    }
+    if(id === 'del' && confirm('Delete this request, its chat and photos?')){
+      try{await ensure(); await D.put('orders/'+cur, null); await D.put('images/'+cur, null); cur = null; $('app').classList.remove('show'); await poll(); detail()}catch(er){alert('Could not delete.')}
+    }
+  });
+
+  /* ---------- prices ---------- */
+  async function loadSettings(){try{await ensure(); var s = await D.get('settings'); if(s) Object.assign(rates, s)}catch(e){}}
+  $('setBtn').onclick = function(){$('rH').value = rates.rateH; $('rT').value = rates.rateT; $('r2').value = rates.rush2; $('r5').value = rates.rush5; $('setMsg').textContent = ''; $('setDlg').showModal()};
+  $('closeSet').onclick = function(){$('setDlg').close()};
+  $('saveSet').onclick = async function(){
+    var s = {rateH:+$('rH').value || 0, rateT:+$('rT').value || 0, rush2:+$('r2').value || 0, rush5:+$('r5').value || 0};
+    try{await ensure(); await D.put('settings', s); rates = s; $('setMsg').textContent = 'Saved. Customers now see these prices.'}catch(e){$('setMsg').textContent = 'Could not save.'}
+  };
+  document.addEventListener('click', function(e){if(e.target.classList && e.target.classList.contains('pic') && e.target.src){$('zimg').src = e.target.src; $('zoom').showModal()}});
+  $('zoom').addEventListener('click', function(){this.close()});
+})();
+</script>
+</body>
+</html>

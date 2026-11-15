@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Assignment Desk – Request an assignment and agree the price</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&family=Caveat:wght@600&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#fbfcff;--page:#eef2fb;--ink:#14214f;--muted:#55618a;--rule:#cfdcf2;--margin:#e5484d;--hi:#ffe45e;--hi-ink:#14214f;--card:#fff;--field:#f3f6fd;--wa:#18a957;--wa-ink:#fff;--me:#e3ecff;--adm:#fff6c9;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#121a36;--page:#0b1226;--ink:#e9eeff;--muted:#a3afd4;--rule:#243258;--margin:#ff6b70;--card:#18224a;--field:#0f1730;--wa:#2bc46f;--wa-ink:#06210f;--me:#26386e;--adm:#4a4320}}
+:root[data-theme="dark"]{--paper:#121a36;--page:#0b1226;--ink:#e9eeff;--muted:#a3afd4;--rule:#243258;--margin:#ff6b70;--card:#18224a;--field:#0f1730;--wa:#2bc46f;--wa-ink:#06210f;--me:#26386e;--adm:#4a4320}
+html{scroll-padding-top:env(safe-area-inset-top,0px);scroll-behavior:smooth}
+*{box-sizing:border-box}
+body{margin:0;background:var(--page);color:var(--ink);font-family:"Bricolage Grotesque",system-ui,sans-serif;line-height:1.55;
+background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 31px,var(--rule) 31px,var(--rule) 32px)}
+body::before{content:"";position:fixed;top:0;bottom:0;left:max(28px,5vw);width:2px;background:var(--margin);opacity:.55;pointer-events:none}
+.wrap{max-width:1020px;margin:0 auto;padding:0 20px 0 calc(max(28px,5vw) + 24px)}
+@media (min-width:1100px){.wrap{padding-left:20px}}
+nav{padding:20px 0;font-weight:800;font-size:1.2rem}
+a.btn,button.btn{font:inherit;font-weight:600;border:0;border-radius:10px;padding:12px 20px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:8px;background:var(--ink);color:var(--card)}
+.wa{background:var(--wa)!important;color:var(--wa-ink)!important}
+.ghost{background:var(--field)!important;color:var(--ink)!important;border:1px solid var(--rule)!important}
+button:disabled{opacity:.55;cursor:wait}
+:focus-visible{outline:3px solid var(--hi);outline-offset:2px}
+h1{font-size:clamp(2.4rem,7vw,4.4rem);line-height:1.03;margin:36px 0 16px;font-weight:800;letter-spacing:-.03em}
+h1 mark{background:var(--hi);color:var(--hi-ink);padding:0 .12em;border-radius:4px}
+.lead{font-size:1.2rem;max-width:34em;color:var(--muted);margin:0 0 24px}
+.note{font-family:Caveat,cursive;font-size:1.6rem;color:var(--margin);transform:rotate(-2deg);display:inline-block}
+section{padding:52px 0 0}
+h2{font-size:clamp(1.6rem,4vw,2.2rem);margin:0 0 18px;letter-spacing:-.02em}
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;padding:0;margin:0;list-style:none;counter-reset:s}
+.steps li{background:var(--card);border:1px solid var(--rule);border-radius:12px;padding:16px;counter-increment:s}
+.steps li::before{content:counter(s);display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;background:var(--hi);color:var(--hi-ink);font-weight:800;margin-bottom:6px}
+.steps b{display:block}.steps span{color:var(--muted);font-size:.95rem}
+.order{display:grid;grid-template-columns:1.3fr 1fr;gap:20px;align-items:start}
+@media (max-width:820px){.order{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--rule);border-radius:14px;padding:20px}
+form{display:grid;gap:14px}
+label,.lab{display:grid;gap:5px;font-size:.88rem;color:var(--muted);font-weight:600}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--field);border:1px solid var(--rule);border-radius:8px;padding:10px 12px;width:100%}
+textarea{min-height:96px;resize:vertical}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg label{margin:0;border:2px solid var(--rule);border-radius:10px;padding:10px 12px;cursor:pointer;color:var(--ink);background:var(--field)}
+.seg label small{display:block;color:var(--muted);font-weight:400}
+.seg input:checked+label{border-color:var(--ink);background:var(--hi);color:var(--hi-ink)}
+.seg input:checked+label small{color:var(--hi-ink)}
+.seg input:focus-visible+label{outline:3px solid var(--ink);outline-offset:2px}
+.stepper{display:flex;gap:8px}
+.stepper button{width:44px;font-size:1.3rem;border:1px solid var(--rule);background:var(--field);color:var(--ink);border-radius:8px;cursor:pointer}
+.stepper input{text-align:center}
+.thumbs{display:flex;gap:8px;flex-wrap:wrap}
+.thumbs div{position:relative}
+.thumbs img,.pic{width:74px;height:74px;object-fit:cover;border-radius:8px;border:1px solid var(--rule);background:var(--field);cursor:zoom-in}
+.thumbs button{position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;border:0;background:var(--margin);color:#fff;cursor:pointer;line-height:1}
+.quote dl{margin:0;display:grid;grid-template-columns:1fr auto;gap:6px 12px;font-size:.95rem}
+.quote dt{color:var(--muted)}.quote dd{margin:0;text-align:right;font-weight:600}
+.total{margin:14px 0;padding-top:12px;border-top:2px dashed var(--rule);display:flex;justify-content:space-between;align-items:baseline}
+.total b{font-size:2.1rem;letter-spacing:-.02em}
+.err{color:var(--margin);font-size:.88rem;min-height:1.2em;margin:0}
+.fine{font-size:.82rem;color:var(--muted);margin:8px 0 0}
+.warn{border:2px dashed var(--margin);border-radius:12px;padding:14px;margin-bottom:16px;background:var(--card)}
+.mine{display:grid;gap:8px;margin-bottom:16px}
+.mine button{text-align:left;font:inherit;background:var(--card);border:1px solid var(--rule);border-radius:10px;padding:10px 14px;cursor:pointer;color:var(--ink)}
+.chatbox{max-width:760px}
+.chathead{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+.chathead h3{margin:0}
+.info{background:var(--field);border:1px solid var(--rule);border-radius:10px;padding:12px;font-size:.92rem;margin-bottom:12px}
+.thread{display:flex;flex-direction:column;gap:8px;max-height:380px;overflow:auto;padding:4px 2px}
+.b{max-width:84%;padding:8px 12px;border-radius:12px;white-space:pre-wrap;overflow-wrap:anywhere}
+.b small{display:block;color:var(--muted);font-size:.72rem}
+.b.cust{align-self:flex-end;background:var(--me);border-bottom-right-radius:3px}
+.b.admin{align-self:flex-start;background:var(--adm);border-bottom-left-radius:3px}
+.b .pic{margin-top:6px;width:150px;height:auto;max-height:200px}
+.offer{margin:14px 0;border-radius:12px;padding:14px;border:2px solid var(--ink)}
+.offer.ok{border-color:var(--wa)}
+.offer .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.offer h4{margin:0 0 4px}
+.composer{display:grid;gap:8px;margin-top:12px}
+.composer .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+details{background:var(--card);border:1px solid var(--rule);border-radius:10px;padding:14px 18px;margin-bottom:10px}
+summary{cursor:pointer;font-weight:600}details p{margin:8px 0 0;color:var(--muted)}
+footer{padding:48px 0 70px;color:var(--muted);font-size:.9rem}
+dialog{border:0;padding:8px;background:transparent;max-width:92vw}dialog::backdrop{background:rgba(5,10,30,.7)}dialog img{max-width:90vw;max-height:85vh;border-radius:10px}
+[hidden]{display:none!important}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav>Assignment Desk</nav>
+  <header>
+    <h1>Send your request. <mark>Agree the price</mark> in chat.</h1>
+    <p class="lead">Share the subject, pages, deadline and photos of your instructions. We chat here, settle the final price per page, and only then continue on WhatsApp.</p>
+    <a class="btn" href="#order">Request an assignment</a> <span class="note">No payment to send a request</span>
+  </header>
+
+  <section aria-labelledby="how">
+    <h2 id="how">How it works</h2>
+    <ol class="steps">
+      <li><b>Send your request</b><span>Fill the form and add photos of the topic, notes or sample.</span></li>
+      <li><b>Chat and agree the price</b><span>Talk to me here. I send a final price per page, you accept or negotiate.</span></li>
+      <li><b>Continue on WhatsApp</b><span>Once you accept the price, a WhatsApp button appears to finish the order.</span></li>
+    </ol>
+  </section>
+
+  <section id="order" aria-labelledby="ot">
+    <h2 id="ot">Your request</h2>
+    <div class="warn" id="setup" hidden><b>Server not reachable.</b> Please try again in a minute.</div>
+    <div class="mine" id="mine" hidden></div>
+
+    <div class="order" id="formWrap">
+      <form class="card" id="form" novalidate>
+        <div class="two">
+          <label>Your name<input id="name" type="text" autocomplete="name" placeholder="Full name"></label>
+          <label>Subject<input id="subject" type="text" placeholder="e.g. Economics"></label>
+        </div>
+        <label>Topic and instructions<textarea id="details" placeholder="Topic, word limit, university format, anything your teacher asked for"></textarea></label>
+        <div class="lab">Photos of instructions or notes (optional, up to 4)
+          <input id="files" type="file" accept="image/*" multiple>
+          <div class="thumbs" id="thumbs"></div>
+        </div>
+        <div class="lab">Assignment type
+          <div class="seg">
+            <span><input type="radio" name="type" id="t1" value="Handwritten" checked><label for="t1">Handwritten<small id="r1"></small></label></span>
+            <span><input type="radio" name="type" id="t2" value="Typed (Word/PDF)"><label for="t2">Typed<small id="r2"></small></label></span>
+          </div>
+        </div>
+        <div class="two">
+          <label>Number of pages<div class="stepper"><button type="button" id="minus" aria-label="Fewer pages">−</button><input id="pages" type="number" min="1" max="200" value="5" inputmode="numeric"><button type="button" id="plus" aria-label="More pages">+</button></div></label>
+          <label>Deadline<input id="deadline" type="date"></label>
+        </div>
+        <p class="err" id="err" role="alert"></p>
+        <button type="submit" class="btn" id="submit">Send request and start chat</button>
+        <p class="fine">This only sends your request to me. The final price is agreed in the chat.</p>
+      </form>
+      <aside class="card quote" aria-live="polite">
+        <h3 style="margin:0 0 10px">Starting estimate</h3>
+        <dl id="lines"></dl>
+        <div class="total"><span>Estimate</span><b id="total">₹0</b></div>
+        <p class="fine" id="rushNote"></p>
+        <p class="fine">This is only a guide. I send the final price per page after reading your instructions.</p>
+      </aside>
+    </div>
+
+    <div class="card chatbox" id="chatWrap" hidden>
+      <div class="chathead"><h3>Chat about your request</h3><button class="btn ghost" id="newReq" style="padding:8px 14px">New request</button></div>
+      <div class="info" id="infoBox"></div>
+      <div class="thread" id="thread" aria-live="polite"></div>
+      <div id="offer"></div>
+      <div class="composer">
+        <textarea id="msg" placeholder="Write a message. Ask a question or tell me the price you have in mind." rows="2"></textarea>
+        <div class="row"><button class="btn" id="send">Send</button><input type="file" id="mfile" accept="image/*" style="max-width:220px"><span class="fine" id="cerr" role="alert"></span></div>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="faq">
+    <h2 id="faq">Common questions</h2>
+    <details><summary>How is the price decided?</summary><p>I read your instructions and send a price per page. You can accept it or reply in the chat to negotiate. A rush deadline can raise the price.</p></details>
+    <details><summary>When does WhatsApp come in?</summary><p>After you accept the final price. A WhatsApp button then appears here so we can finish the order and payment.</p></details>
+    <details><summary>How do I come back to my chat?</summary><p>Open this website on the same phone or browser. Your requests are listed at the top of this section.</p></details>
+  </section>
+  <footer>Assignment Desk · Replies usually come within a few hours.</footer>
+</div>
+<dialog id="zoom"><img id="zimg" alt="Enlarged photo"></dialog>
+
+<script src="desk.js"></script>
+<script>
+(function(){
+  var D = window.DESK, $ = function(i){return document.getElementById(i)}, esc = D.esc, inr = D.inr;
+  var R = {H:40, T:25, r2:.5, r5:.2};      // fallback prices; the admin panel overrides them
+  var imgs = [], cur = null, lastSig = '', busy = false;
+  var MK = 'assignment-desk-mine-v1';
+  function mine(){try{return JSON.parse(localStorage.getItem(MK)) || []}catch(e){return []}}
+  function saveMine(l){try{localStorage.setItem(MK, JSON.stringify(l.slice(0, 20)))}catch(e){}}
+
+  if(!D.ok){$('setup').hidden = false}
+  else D.get('settings').then(function(s){if(s){R.H = s.rateH || R.H; R.T = s.rateT || R.T; if(s.rush2 != null) R.r2 = s.rush2/100; if(s.rush5 != null) R.r5 = s.rush5/100; update()}}).catch(function(){});
+
+  /* ---- estimate ---- */
+  var today = new Date(); today.setHours(0,0,0,0);
+  $('deadline').min = new Date(today - today.getTimezoneOffset()*60000).toISOString().slice(0,10);
+  function type(){return document.querySelector('input[name=type]:checked').value}
+  function pages(){var p = parseInt($('pages').value,10); return isNaN(p) || p < 1 ? 0 : Math.min(p,200)}
+  function update(){
+    $('r1').textContent = 'about ' + inr(R.H) + ' per page'; $('r2').textContent = 'about ' + inr(R.T) + ' per page';
+    var rate = type() === 'Handwritten' ? R.H : R.T, p = pages(), sub = p*rate, v = $('deadline').value, pct = 0;
+    if(v){var dl = Math.round((new Date(v+'T00:00:00') - today)/86400000); pct = dl <= 1 ? R.r2 : dl <= 5 ? R.r5 : 0}
+    var rush = sub*pct;
+    $('lines').innerHTML = '<dt>'+esc(type())+'</dt><dd>'+inr(rate)+' / page</dd><dt>Pages</dt><dd>'+p+'</dd><dt>Subtotal</dt><dd>'+inr(sub)+'</dd>' + (rush ? '<dt>Rush ('+Math.round(pct*100)+'%)</dt><dd>'+inr(rush)+'</dd>' : '');
+    $('total').textContent = inr(sub + rush);
+    $('rushNote').textContent = rush ? 'A rush charge applies because your deadline is close.' : '';
+    return sub + rush;
+  }
+  $('plus').onclick = function(){$('pages').value = Math.min(200, (pages()||0)+1); update()};
+  $('minus').onclick = function(){$('pages').value = Math.max(1, (pages()||2)-1); update()};
+  ['pages','deadline','t1','t2'].forEach(function(i){$(i).addEventListener('input', update); $(i).addEventListener('change', update)});
+
+  /* ---- photos on the form ---- */
+  function drawThumbs(){
+    $('thumbs').innerHTML = imgs.map(function(d,i){return '<div><img src="'+d+'" alt="Photo '+(i+1)+'"><button type="button" data-i="'+i+'" aria-label="Remove photo">×</button></div>'}).join('');
+  }
+  $('files').onchange = async function(){
+    $('err').textContent = '';
+    for(var f of Array.from(this.files)){
+      if(imgs.length >= 4){$('err').textContent = 'You can add up to 4 photos.'; break}
+      try{imgs.push(await D.shrink(f, 1000))}catch(e){$('err').textContent = 'One file was not a photo.'}
+    }
+    this.value = ''; drawThumbs();
+  };
+  $('thumbs').onclick = function(e){var i = e.target.getAttribute('data-i'); if(i != null){imgs.splice(+i,1); drawThumbs()}};
+
+  /* ---- submit ---- */
+  $('form').onsubmit = async function(e){
+    e.preventDefault();
+    var name = $('name').value.trim(), subj = $('subject').value.trim(), p = pages();
+    if(!D.ok){$('err').textContent = 'The site is not set up yet. See README.txt.'; return}
+    if(!name){$('err').textContent = 'Please enter your name.'; $('name').focus(); return}
+    if(!subj){$('err').textContent = 'Please enter the subject.'; $('subject').focus(); return}
+    if(!p){$('err').textContent = 'Please enter at least 1 page.'; return}
+    $('err').textContent = ''; $('submit').disabled = true; $('submit').textContent = 'Sending…';
+    var id = D.id(12), keys = [];
+    try{
+      keys = imgs.map(function(_, i){return 'i'+i});
+      await D.put('orders/'+id+'/info', {name:name, subject:subj, details:$('details').value.trim(), type:type(), pages:p, deadline:$('deadline').value, est:inr(update()), imgs:keys, created:Date.now()});
+      for(var i = 0; i < keys.length; i++){await D.put('images/'+id+'/'+keys[i], {d:imgs[i]})}
+      var l = mine(); l.unshift({id:id, t:subj+' · '+p+' pages'}); saveMine(l);
+      $('form').reset(); imgs = []; drawThumbs(); update(); openChat(id);
+    }catch(er){$('err').textContent = 'Could not send. Check your internet and try again.'}
+    $('submit').disabled = false; $('submit').textContent = 'Send request and start chat';
+  };
+
+  /* ---- my requests ---- */
+  function showMine(){
+    var l = mine(); $('mine').hidden = !l.length || !!cur;
+    $('mine').innerHTML = l.length ? '<b>Your requests</b>' + l.map(function(o){return '<button data-id="'+esc(o.id)+'">'+esc(o.t)+'</button>'}).join('') : '';
+  }
+  $('mine').onclick = function(e){var b = e.target.closest('button'); if(b) openChat(b.getAttribute('data-id'))};
+  $('newReq').onclick = function(){cur = null; $('chatWrap').hidden = true; $('formWrap').hidden = false; showMine()};
+
+  /* ---- chat ---- */
+  function openChat(id){cur = id; lastSig = ''; $('formWrap').hidden = true; $('chatWrap').hidden = false; $('mine').hidden = true; load(true); $('order').scrollIntoView()}
+  async function load(force){
+    if(!cur || !D.ok) return;
+    var data; try{data = await D.get('orders/'+cur)}catch(e){return}
+    if(!data){$('infoBox').textContent = 'This request could not be found.'; return}
+    render(data);
+  }
+  function wa(d){
+    var q = d.quote, i = d.info;
+    return 'https://wa.me/'+D.cfg.whatsapp+'?text='+encodeURIComponent('Hello! The price is agreed for my '+i.subject+' assignment ('+i.pages+' pages): '+inr(q.total)+' ('+inr(q.ppp)+' per page). My name is '+i.name+'. Request ID: '+cur.slice(0,8));
+  }
+  function render(d){
+    var msgs = Object.keys(d.chat || {}).sort().map(function(k){return [k, d.chat[k]]});
+    var sig = msgs.length + '|' + JSON.stringify(d.quote || '') + '|' + (d.decision || '');
+    if(sig === lastSig) return; lastSig = sig;
+    var i = d.info || {};
+    $('infoBox').innerHTML = '<b>'+esc(i.subject)+'</b> · '+esc(i.type)+' · '+esc(i.pages)+' pages · deadline '+esc(D.date(i.deadline)) +
+      (i.details ? '<br>'+esc(i.details) : '') + ((i.imgs||[]).length ? '<div class="thumbs" style="margin-top:8px">'+i.imgs.map(function(k){return '<img class="pic" data-oid="'+cur+'" data-k="'+esc(k)+'" alt="Your photo">'}).join('')+'</div>' : '');
+    var t = $('thread'), atEnd = t.scrollHeight - t.scrollTop - t.clientHeight < 80 || !t.children.length;
+    t.innerHTML = msgs.length ? msgs.map(function(m){var x = m[1]; return '<div class="b '+(x.who==='cust'?'cust':'admin')+'">'+esc(x.text)+(x.img?'<img class="pic" data-oid="'+cur+'" data-k="'+esc(x.img)+'" alt="Photo">':'')+'<small>'+(x.who==='cust'?'You':'Assignment Desk')+' · '+D.when(x.t)+'</small></div>'}).join('') : '<p class="fine">No messages yet. Say hello, or wait for my price offer.</p>';
+    if(atEnd) t.scrollTop = t.scrollHeight;
+    var q = d.quote, o = $('offer');
+    if(!q) o.innerHTML = '<p class="fine">I am reading your request and will send my final price per page here soon.</p>';
+    else{
+      var det = '<h4>Final price offer: '+inr(q.total)+'</h4><div class="fine" style="margin:0">'+inr(q.ppp)+' per page × '+q.pages+' pages'+(q.extra ? (q.extra>0?' + '+inr(q.extra)+' extra':' − '+inr(-q.extra)+' discount') : '')+'</div>';
+      if(d.decision === 'accepted') o.innerHTML = '<div class="offer ok">'+det+'<p style="margin:8px 0 0"><b>Price agreed.</b> Continue on WhatsApp to finish your order.</p><div class="row"><a class="btn wa" href="'+wa(d)+'" target="_blank" rel="noopener">Continue on WhatsApp</a></div></div>';
+      else o.innerHTML = '<div class="offer">'+det+(d.decision==='declined' ? '<p class="fine">You declined this price. Tell me what works for you in the chat.</p>' : '<p class="fine">Accept it to continue on WhatsApp, or reply below to negotiate.</p>')+'<div class="row"><button class="btn" id="acc">Accept this price</button>'+(d.decision==='declined'?'':'<button class="btn ghost" id="dec">Not at this price</button>')+'</div></div>';
+      var a = $('acc'); if(a) a.onclick = function(){decide('accepted', q)};
+      var c = $('dec'); if(c) c.onclick = function(){decide('declined', q)};
+    }
+    D.fillImages($('chatWrap'));
+  }
+  async function post(text, img){
+    return D.post('orders/'+cur+'/chat', {who:'cust', text:text, img:img || null, t:Date.now()});
+  }
+  async function decide(v, q){
+    try{
+      await D.put('orders/'+cur+'/decision', v);
+      await post(v === 'accepted' ? 'I accept the price of '+inr(q.total)+'.' : 'I would like to discuss the price of '+inr(q.total)+'.');
+      lastSig = ''; load();
+    }catch(e){$('cerr').textContent = 'Could not save. Try again.'}
+  }
+  $('send').onclick = async function(){
+    if(busy) return;
+    var text = $('msg').value.trim(), f = $('mfile').files[0];
+    if(!text && !f) return;
+    busy = true; $('send').disabled = true; $('cerr').textContent = '';
+    try{
+      var key = null;
+      if(f){key = 'm'+D.id(6); await D.put('images/'+cur+'/'+key, {d: await D.shrink(f, 1000)})}
+      await post(text, key); $('msg').value = ''; $('mfile').value = ''; lastSig = ''; await load();
+    }catch(e){$('cerr').textContent = 'Message not sent. Try again.'}
+    busy = false; $('send').disabled = false;
+  };
+  $('msg').addEventListener('keydown', function(e){if(e.key === 'Enter' && (e.ctrlKey || e.metaKey)) $('send').click()});
+  document.addEventListener('click', function(e){if(e.target.classList && e.target.classList.contains('pic') && e.target.src){$('zimg').src = e.target.src; $('zoom').showModal()}});
+  $('zoom').addEventListener('click', function(){this.close()});
+  setInterval(function(){if(cur && !document.hidden) load()}, 3000);
+
+  var q = new URLSearchParams(location.search).get('r');
+  update(); showMine();
+  if(q) openChat(q);
+})();
+</script>
+</body>
+</html>
