@@ -2,7 +2,7 @@
   var D = {cfg:{whatsapp:''}, token:null, ok:true};
   // Translates simple "path" calls into the server's REST API (all security is enforced by the server).
   function api(m, u, b){
-    var h = {'Content-Type':'application/json'}; if(D.token) h.Authorization = 'Bearer ' + D.token;
+    var h = {'Content-Type':'application/json'}; if(D.token) h.Authorization = 'Bearer ' + D.token; if(D.ctoken) h['X-Customer-Token'] = D.ctoken;
     return fetch(u, {method:m, headers:h, body: b === undefined ? undefined : JSON.stringify(b)}).then(function(r){
       if(!r.ok) return r.json().catch(function(){return {}}).then(function(j){var e = new Error(j.error || ('api ' + r.status)); e.status = r.status; throw e});
       return r.json();

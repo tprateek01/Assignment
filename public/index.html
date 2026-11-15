@@ -154,7 +154,7 @@ input[type=date]{min-width:0;max-width:100%}
   <section aria-labelledby="how">
     <h2 id="how">How it works</h2>
     <ol class="steps">
-      <li><b>Send your request</b><span>Fill the form with your mobile number. Add photos, or upload the PDF you want written.</span></li>
+      <li><b>Send your request</b><span>Log in with your email code, then fill the form with your mobile number. Add photos, or upload the PDF you want written.</span></li>
       <li><b>Chat and agree the price</b><span>Talk to me here. I send a final price per page, you accept or negotiate.</span></li>
       <li><b>Continue on WhatsApp</b><span>Once you accept the price, a WhatsApp button appears to finish the order.</span></li>
       <li><b>Watch the progress</b><span>While I write, you see how many pages are done, live, in your chat.</span></li>
@@ -164,9 +164,24 @@ input[type=date]{min-width:0;max-width:100%}
   <section id="order" aria-labelledby="ot">
     <h2 id="ot">Your request</h2>
     <div class="warn" id="setup" hidden><b>Server not reachable.</b> Please try again in a minute.</div>
+    <div class="card" id="authWrap" hidden>
+      <h3 style="margin:0 0 6px">Log in with your email</h3>
+      <p class="fine" style="margin-top:0">We email you a 6-digit code. No password needed. Logging in lets you come back to your requests and chats any time, on any device.</p>
+      <div id="authStep1">
+        <label>Email<input id="aEmail" type="email" autocomplete="email" inputmode="email" placeholder="you@example.com"></label>
+        <div style="display:flex;gap:8px;align-items:center;margin-top:10px"><button class="btn" id="aSend" type="button">Send code</button></div>
+      </div>
+      <div id="authStep2" hidden>
+        <p class="fine" id="aSentTo" style="margin-top:0"></p>
+        <label>6-digit code<input id="aCode" type="text" autocomplete="one-time-code" inputmode="numeric" maxlength="6" placeholder="123456"></label>
+        <div style="display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap"><button class="btn" id="aVerify" type="button">Verify and log in</button><button class="btn ghost" id="aBack" type="button">Change email</button></div>
+      </div>
+      <p class="err" id="aErr" role="alert"></p>
+    </div>
+    <p class="fine" id="authBar" hidden>Logged in as <b id="who"></b> · <button class="btn ghost" id="logout" type="button" style="padding:4px 12px">Log out</button></p>
     <div class="mine" id="mine" hidden></div>
 
-    <div class="order" id="formWrap">
+    <div class="order" id="formWrap" hidden>
       <form class="card" id="form" novalidate>
         <div class="two">
           <label>Your name<input id="name" type="text" autocomplete="name" placeholder="Full name"></label>
@@ -231,7 +246,7 @@ input[type=date]{min-width:0;max-width:100%}
     <details><summary>Can I upload a PDF to get it written?</summary><p>Yes. Attach your PDF in the request form (up to 8 MB), or add it later from the chat. I will write it out from that file.</p></details>
     <details><summary>Can I see how much is done?</summary><p>Yes. While I work, the number of finished pages is updated live in your chat.</p></details>
     <details><summary>When does WhatsApp come in?</summary><p>After you accept the final price. A WhatsApp button then appears here so we can finish the order and payment.</p></details>
-    <details><summary>How do I come back to my chat?</summary><p>Open this website on the same phone or browser. Your requests are listed at the top of this section.</p></details>
+    <details><summary>How do I come back to my chat?</summary><p>Open this website and log in with the same email. We send you a 6-digit code, and all your requests are listed at the top of this section, on any phone or browser.</p></details>
   </section>
   <footer>Assignment Desk · Replies usually come within a few hours.</footer>
 </div>
@@ -243,8 +258,50 @@ input[type=date]{min-width:0;max-width:100%}
   var D = window.DESK, $ = function(i){return document.getElementById(i)}, esc = D.esc, inr = D.inr;
   var R = {H:40, T:25, r2:.5, r5:.2};      // fallback prices; the admin panel overrides them
   var imgs = [], pdf = null, cur = null, lastSig = '', busy = false;
-  var MK = 'assignment-desk-mine-v1', CK = 'assignment-desk-contact-v1';
+  var MK = 'assignment-desk-mine-v1', CK = 'assignment-desk-contact-v1', AK = 'assignment-desk-cauth-v1';
+  var srv = [];   // requests found on the server for the logged-in email
+  function authGet(){try{return JSON.parse(localStorage.getItem(AK))}catch(e){return null}}
+  var A = authGet(); if(A && A.t) D.ctoken = A.t; else A = null;
   function mine(){try{return JSON.parse(localStorage.getItem(MK)) || []}catch(e){return []}}
+  function allMine(){var l = mine().slice(), seen = {}; l.forEach(function(x){seen[x.id] = 1}); srv.forEach(function(x){if(!seen[x.id]) l.push(x)}); return l.slice(0, 50)}
+  function layout(){
+    $('authWrap').hidden = !!A || !!cur;
+    $('formWrap').hidden = !A || !!cur;
+    $('authBar').hidden = !A; if(A) $('who').textContent = A.m;
+  }
+  function logout(msg){
+    try{localStorage.removeItem(AK)}catch(e){} D.ctoken = null; A = null; srv = [];
+    layout(); showMine(); if(msg) $('aErr').textContent = msg;
+  }
+  function fetchMine(){
+    if(!A) return;
+    D.api('GET', '/api/my/orders').then(function(r){srv = Array.isArray(r) ? r : []; showMine()}).catch(function(e){if(e.status === 401) logout('Your login expired. Please log in again.')});
+  }
+  function step(n){$('authStep1').hidden = n !== 1; $('authStep2').hidden = n !== 2; $('aErr').textContent = ''}
+  $('aSend').onclick = async function(){
+    var m = $('aEmail').value.trim().toLowerCase();
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(m)){$('aErr').textContent = 'Please enter a valid email address.'; return}
+    $('aSend').disabled = true; $('aErr').textContent = '';
+    try{await D.api('POST', '/api/auth/send-otp', {email:m}); $('aSentTo').textContent = 'We sent a code to ' + m + '. It is valid for 10 minutes. Check spam if you do not see it.'; step(2); $('aCode').value = ''; $('aCode').focus()}
+    catch(e){$('aErr').textContent = e.message || 'Could not send the code. Try again.'}
+    $('aSend').disabled = false;
+  };
+  $('aEmail').addEventListener('keydown', function(e){if(e.key === 'Enter'){e.preventDefault(); $('aSend').click()}});
+  $('aBack').onclick = function(){step(1)};
+  $('aVerify').onclick = async function(){
+    var m = $('aEmail').value.trim().toLowerCase(), c = $('aCode').value.trim();
+    if(!/^\d{6}$/.test(c)){$('aErr').textContent = 'Enter the 6-digit code.'; return}
+    $('aVerify').disabled = true; $('aErr').textContent = '';
+    try{
+      var r = await D.api('POST', '/api/auth/verify', {email:m, code:c});
+      A = {t:r.token, m:r.email}; D.ctoken = A.t;
+      try{localStorage.setItem(AK, JSON.stringify(A))}catch(x){}
+      step(1); $('aEmail').value = ''; layout(); fetchMine();
+    }catch(e){$('aErr').textContent = e.message || 'Could not verify. Try again.'}
+    $('aVerify').disabled = false;
+  };
+  $('aCode').addEventListener('keydown', function(e){if(e.key === 'Enter'){e.preventDefault(); $('aVerify').click()}});
+  $('logout').onclick = function(){logout()};
   function saveMine(l){try{localStorage.setItem(MK, JSON.stringify(l.slice(0, 20)))}catch(e){}}
   function contact(){try{return JSON.parse(localStorage.getItem(CK)) || {}}catch(e){return {}}}
   function prefill(){var c = contact(); if(c.name && !$('name').value) $('name').value = c.name; if(c.phone && !$('phone').value) $('phone').value = c.phone}
@@ -305,6 +362,7 @@ input[type=date]{min-width:0;max-width:100%}
     e.preventDefault();
     var name = $('name').value.trim(), subj = $('subject').value.trim(), p = pages(), ph = $('phone').value.trim();
     if(!D.ok){$('err').textContent = 'The site is not set up yet. See README.txt.'; return}
+    if(!A){$('err').textContent = 'Please log in with your email first.'; layout(); return}
     if(!name){$('err').textContent = 'Please enter your name.'; $('name').focus(); return}
     if(!D.phone(ph)){$('err').textContent = 'Please enter a valid mobile number (10 digits).'; $('phone').focus(); return}
     if(!subj){$('err').textContent = 'Please enter the subject.'; $('subject').focus(); return}
@@ -317,10 +375,11 @@ input[type=date]{min-width:0;max-width:100%}
       for(var i = 0; i < keys.length; i++){await D.put('images/'+id+'/'+keys[i], {d:imgs[i]})}
       if(pdf){try{await D.api('PUT', '/api/orders/'+id+'/pdf', {name:pdf.name, d:await D.readDataUrl(pdf)})}catch(x){pdfProblem = x.status === 413 || x.status === 429 ? x.message : 'Your PDF could not be uploaded.'}}
       try{localStorage.setItem(CK, JSON.stringify({name:name, phone:ph}))}catch(x){}
-      var l = mine(); l.unshift({id:id, t:subj+' · '+p+' pages'}); saveMine(l);
+      var l = mine(); l.unshift({id:id, t:subj+' · '+p+' pages'}); saveMine(l); fetchMine();
       $('form').reset(); imgs = []; pdf = null; drawThumbs(); drawPdf(); $('pdfNote').textContent = ''; prefill(); update(); openChat(id);
       if(pdfProblem) $('cerr').textContent = pdfProblem + ' Your request was sent. Attach the PDF again below.';
     }catch(er){
+      if(er.status === 401){logout('Your login expired. Please log in again.'); $('submit').disabled = false; $('submit').textContent = 'Send request and start chat'; return}
       var msg = (er.status === 400 || er.status === 429) && er.message ? er.message : 'Could not send. Check your internet and try again.';
       $('err').textContent = msg === 'Invalid request' ? 'Please check the details and try again.' : msg;
     }
@@ -329,14 +388,14 @@ input[type=date]{min-width:0;max-width:100%}
 
   /* ---- my requests ---- */
   function showMine(){
-    var l = mine(); $('mine').hidden = !l.length || !!cur;
+    var l = allMine(); $('mine').hidden = !l.length || !!cur;
     $('mine').innerHTML = l.length ? '<b>Your requests</b>' + l.map(function(o){return '<button data-id="'+esc(o.id)+'">'+esc(o.t)+'</button>'}).join('') : '';
   }
   $('mine').onclick = function(e){var b = e.target.closest('button'); if(b) openChat(b.getAttribute('data-id'))};
-  $('newReq').onclick = function(){cur = null; $('chatWrap').hidden = true; $('formWrap').hidden = false; showMine()};
+  $('newReq').onclick = function(){cur = null; $('chatWrap').hidden = true; layout(); showMine()};
 
   /* ---- chat ---- */
-  function openChat(id){cur = id; lastSig = ''; $('formWrap').hidden = true; $('chatWrap').hidden = false; $('mine').hidden = true; load(true); $('order').scrollIntoView()}
+  function openChat(id){cur = id; lastSig = ''; layout(); $('chatWrap').hidden = false; $('mine').hidden = true; load(true); $('order').scrollIntoView()}
   async function load(force){
     if(!cur || !D.ok) return;
     var data; try{data = await D.get('orders/'+cur)}catch(e){return}
@@ -432,7 +491,7 @@ input[type=date]{min-width:0;max-width:100%}
   setInterval(function(){if(cur && !document.hidden) load()}, 3000);
 
   var q = new URLSearchParams(location.search).get('r');
-  prefill(); update(); showMine();
+  prefill(); update(); layout(); showMine(); fetchMine();
   if(q) openChat(q);
 })();
 </script>

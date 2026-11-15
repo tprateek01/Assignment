@@ -1,7 +1,7 @@
 const express = require('express'), crypto = require('crypto'), path = require('path');
 const { MongoClient } = require('mongodb');
 const E = process.env, PORT = E.PORT || 3000;
-for (const k of ['MONGODB_URI', 'ADMIN_EMAIL', 'ADMIN_PASSWORD', 'SESSION_SECRET'])
+for (const k of ['MONGODB_URI', 'ADMIN_EMAIL', 'ADMIN_PASSWORD', 'SESSION_SECRET', 'BREVO_API_KEY', 'BREVO_SENDER_EMAIL'])
   if (!E[k]) { console.error('Missing environment variable: ' + k); process.exit(1); }
 
 const app = express();
@@ -20,6 +20,35 @@ function isAdmin(q) {
   try { return JSON.parse(Buffer.from(p, 'base64url')).e > Date.now(); } catch { return false; }
 }
 const admin = (q, s, n) => isAdmin(q) ? n() : s.status(401).json({ error: 'Not allowed' });
+
+/* ---- customer login: email OTP (sent with Brevo) + signed 30-day token ----
+   Customer tokens use a DIFFERENT signing key and header from admin tokens, so they can never act as admin. */
+const csign = p => crypto.createHmac('sha256', E.SESSION_SECRET + ':customer').update(p).digest('base64url');
+const makeCustToken = m => { const p = Buffer.from(JSON.stringify({ m, e: Date.now() + 30 * 864e5 })).toString('base64url'); return p + '.' + csign(p); };
+function custEmail(q) {
+  const [p, s] = String(q.headers['x-customer-token'] || '').split('.');
+  if (!p || !s || !same(s, csign(p))) return null;
+  try { const d = JSON.parse(Buffer.from(p, 'base64url')); return d.e > Date.now() && typeof d.m === 'string' ? d.m : null; } catch { return null; }
+}
+const cust = (q, s, n) => { const m = custEmail(q); if (!m) return s.status(401).json({ error: 'Please log in' }); q.email = m; n(); };
+const EMAIL = /^[^\s@]{1,64}@[^\s@]{1,120}\.[^\s@]{2,}$/;
+const otpHash = (m, c) => crypto.createHmac('sha256', E.SESSION_SECRET + ':otp').update(m + ':' + c).digest('base64url');
+async function sendOtpMail(to, code) {
+  const r = await fetch('https://api.brevo.com/v3/smtp/email', {
+    method: 'POST',
+    headers: { 'api-key': E.BREVO_API_KEY, 'content-type': 'application/json', accept: 'application/json' },
+    body: JSON.stringify({
+      sender: { name: E.BREVO_SENDER_NAME || 'Assignment Desk', email: E.BREVO_SENDER_EMAIL },
+      to: [{ email: to }],
+      subject: 'Your Assignment Desk login code: ' + code,
+      textContent: 'Your login code is ' + code + '. It is valid for 10 minutes. If you did not ask for it, ignore this email.',
+      htmlContent: '<div style="font-family:Arial,sans-serif;max-width:420px"><p>Your Assignment Desk login code:</p>' +
+        '<p style="font-size:32px;font-weight:700;letter-spacing:6px;margin:12px 0">' + code + '</p>' +
+        '<p style="color:#555">Valid for 10 minutes. If you did not ask for it, you can ignore this email.</p></div>'
+    })
+  });
+  if (!r.ok) throw new Error('Brevo ' + r.status + ' ' + (await r.text()));
+}
 
 /* ---- simple rate limit per IP (skipped for the admin) ---- */
 const hits = new Map();
@@ -55,12 +84,37 @@ app.put('/api/settings', admin, wrap(async (q, s) => {
   await col('settings').updateOne({ _id: 'main' }, { $set: d }, { upsert: true }); s.json(d);
 }));
 
+/* ---- customer login routes ---- */
+app.post('/api/auth/send-otp', limit('otp', 8, 9e5), wrap(async (q, s) => {
+  const m = str((q.body || {}).email, 150).toLowerCase();
+  if (!EMAIL.test(m)) return s.status(400).json({ error: 'Please enter a valid email address' });
+  const old = await col('otps').findOne({ _id: m });
+  if (old && Date.now() - old.last < 60000) return s.status(429).json({ error: 'Please wait a minute before asking for a new code' });
+  const code = String(crypto.randomInt(100000, 1000000));
+  await col('otps').updateOne({ _id: m }, { $set: { h: otpHash(m, code), exp: new Date(Date.now() + 6e5), tries: 0, last: Date.now() } }, { upsert: true });
+  try { await sendOtpMail(m, code); } catch (e) { console.error(e.message); await col('otps').deleteOne({ _id: m }); return s.status(502).json({ error: 'Could not send the email. Try again.' }); }
+  s.json({ ok: true });
+}));
+app.post('/api/auth/verify', limit('otpv', 20, 9e5), wrap(async (q, s) => {
+  const b = q.body || {}, m = str(b.email, 150).toLowerCase(), c = str(b.code, 10);
+  const d = EMAIL.test(m) ? await col('otps').findOne({ _id: m }) : null;
+  if (!d || d.exp < new Date()) return s.status(400).json({ error: 'Code expired. Ask for a new one.' });
+  if (d.tries >= 5) { await col('otps').deleteOne({ _id: m }); return s.status(429).json({ error: 'Too many wrong attempts. Ask for a new code.' }); }
+  if (!/^\d{6}$/.test(c) || !same(otpHash(m, c), d.h)) { await col('otps').updateOne({ _id: m }, { $inc: { tries: 1 } }); return s.status(400).json({ error: 'Wrong code' }); }
+  await col('otps').deleteOne({ _id: m });
+  s.json({ token: makeCustToken(m), email: m });
+}));
+app.get('/api/my/orders', cust, wrap(async (q, s) => {
+  const os = await col('orders').find({ 'info.email': q.email }).sort({ 'info.created': -1 }).limit(50).toArray();
+  s.json(os.map(o => ({ id: o._id, t: o.info.subject + ' · ' + o.info.pages + ' pages' })));
+}));
+
 /* ---- customer: create request, read own chat ---- */
-app.post('/api/orders', limit('new', 15, 36e5), wrap(async (q, s) => {
+app.post('/api/orders', limit('new', 15, 36e5), cust, wrap(async (q, s) => {
   const b = q.body || {}, pages = Math.round(+b.pages);
   if (!ID.test(b.id) || !str(b.name, 80) || !str(b.subject, 120) || !(pages >= 1 && pages <= 200)) return s.status(400).json({ error: 'Invalid request' });
   const info = {
-    name: str(b.name, 80), subject: str(b.subject, 120), details: str(b.details, 3000),
+    name: str(b.name, 80), email: q.email, subject: str(b.subject, 120), details: str(b.details, 3000),
     type: b.type === 'Handwritten' ? 'Handwritten' : 'Typed (Word/PDF)', pages,
     deadline: /^\d{4}-\d\d-\d\d$/.test(b.deadline) ? b.deadline : '', est: str(b.est, 30),
     imgs: (Array.isArray(b.imgs) ? b.imgs : []).filter(k => /^i[0-3]$/.test(k)).slice(0, 4), created: Date.now()
@@ -134,6 +188,6 @@ app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'], d
 
 MongoClient.connect(E.MONGODB_URI).then(async c => {
   db = c.db();
-  await col('messages').createIndex({ oid: 1, _id: 1 }); await col('images').createIndex({ oid: 1 }); await col('orders').createIndex({ 'info.created': -1 });
+  await col('messages').createIndex({ oid: 1, _id: 1 }); await col('images').createIndex({ oid: 1 }); await col('orders').createIndex({ 'info.created': -1 }); await col('orders').createIndex({ 'info.email': 1 }); await col('otps').createIndex({ exp: 1 }, { expireAfterSeconds: 0 });
   app.listen(PORT, () => console.log('Assignment Desk running on port ' + PORT));
 }).catch(e => { console.error('Could not connect to MongoDB:', e.message); process.exit(1); });

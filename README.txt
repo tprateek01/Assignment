@@ -36,6 +36,20 @@ Install Node.js 20+. In this folder:
   node --env-file=.env server.js
 Open http://localhost:3000
 
+STEP 2B – BREVO (EMAIL LOGIN CODES FOR CUSTOMERS)
+-------------------------------------------------
+Customers now log in with a 6-digit code sent to their email, so they can reopen their
+requests and chats any time (any browser or phone). Codes are sent through Brevo.
+1. Sign up free at brevo.com (300 emails/day on the free plan).
+2. Brevo > Senders, Domains & Dedicated IPs > Senders > Add a sender. Use an email you own
+   and click the verification link Brevo emails you. This is BREVO_SENDER_EMAIL.
+   (For best inbox delivery also authenticate your domain: add the DKIM and DMARC records Brevo shows.)
+3. Brevo > top-right menu > SMTP & API > API Keys > Generate a new API key. Copy it (shown once).
+   This is BREVO_API_KEY. It is the API key (starts with xkeysib-), not the SMTP key.
+4. If Brevo asks, Security > Authorised IPs: deactivate IP blocking (hosts like Render change IPs).
+5. Put these in .env (local) or the host's Environment Variables:
+     BREVO_API_KEY, BREVO_SENDER_EMAIL, BREVO_SENDER_NAME (optional)
+
 STEP 3 – PUT IT ONLINE (free, Render.com)
 -----------------------------------------
 1. Upload this folder to a GitHub repository (do NOT upload your .env file).
@@ -47,6 +61,7 @@ STEP 3 – PUT IT ONLINE (free, Render.com)
      ADMIN_PASSWORD  a long strong password
      SESSION_SECRET  any long random text
      WHATSAPP        918595938353   (country code, no +)
+     BREVO_API_KEY, BREVO_SENDER_EMAIL, BREVO_SENDER_NAME   (see Step 2B)
 4. Deploy. Open your Render address, then the admin URL, and log in with
    ADMIN_EMAIL and ADMIN_PASSWORD.
 Note: Render's free plan sleeps after inactivity, so the first visit can take about
