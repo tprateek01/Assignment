@@ -185,7 +185,7 @@ input[type=date]{min-width:0;max-width:100%}
       <form class="card" id="form" novalidate>
         <div class="two">
           <label>Your name<input id="name" type="text" autocomplete="name" placeholder="Full name"></label>
-          <label>Mobile number<input id="phone" type="tel" autocomplete="tel" inputmode="tel" placeholder="10-digit mobile number" required></label>
+          <label>Mobile number<div class="ccrow" style="display:flex;gap:8px"><select id="cc" aria-label="Country code" style="width:auto;max-width:48%;flex:0 0 auto"><option value="91">India +91</option><option value="1">USA/Canada +1</option><option value="44">UK +44</option><option value="971">UAE +971</option><option value="966">Saudi Arabia +966</option><option value="974">Qatar +974</option><option value="968">Oman +968</option><option value="965">Kuwait +965</option><option value="61">Australia +61</option><option value="65">Singapore +65</option><option value="60">Malaysia +60</option><option value="92">Pakistan +92</option><option value="880">Bangladesh +880</option><option value="977">Nepal +977</option><option value="94">Sri Lanka +94</option><option value="49">Germany +49</option><option value="33">France +33</option></select><input id="phone" type="tel" autocomplete="tel-national" inputmode="numeric" maxlength="10" placeholder="10-digit mobile number" aria-label="Mobile number"></div></label>
         </div>
         <label>Subject<input id="subject" type="text" placeholder="e.g. Economics"></label>
         <label>Topic and instructions<textarea id="details" placeholder="Topic, word limit, university format, anything your teacher asked for"></textarea></label>
@@ -229,7 +229,7 @@ input[type=date]{min-width:0;max-width:100%}
       <div id="offer"></div>
       <div class="gate" id="phoneGate" hidden>
         <p><b>Please add your mobile number to continue.</b></p>
-        <input id="gatePhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="10-digit mobile number" aria-label="Mobile number">
+        <div class="ccrow" style="display:flex;gap:8px"><select id="gateCc" aria-label="Country code" style="width:auto;max-width:48%;flex:0 0 auto"><option value="91">India +91</option><option value="1">USA/Canada +1</option><option value="44">UK +44</option><option value="971">UAE +971</option><option value="966">Saudi Arabia +966</option><option value="974">Qatar +974</option><option value="968">Oman +968</option><option value="965">Kuwait +965</option><option value="61">Australia +61</option><option value="65">Singapore +65</option><option value="60">Malaysia +60</option><option value="92">Pakistan +92</option><option value="880">Bangladesh +880</option><option value="977">Nepal +977</option><option value="94">Sri Lanka +94</option><option value="49">Germany +49</option><option value="33">France +33</option></select><input id="gatePhone" type="tel" autocomplete="tel-national" inputmode="numeric" maxlength="10" placeholder="10-digit mobile number" aria-label="Mobile number"></div>
         <div class="row" style="display:flex;gap:8px;align-items:center"><button class="btn" id="savePhone" type="button">Save number</button><span class="err" id="gateErr" role="alert"></span></div>
       </div>
       <div class="composer" id="composer">
@@ -304,7 +304,7 @@ input[type=date]{min-width:0;max-width:100%}
   $('logout').onclick = function(){logout()};
   function saveMine(l){try{localStorage.setItem(MK, JSON.stringify(l.slice(0, 20)))}catch(e){}}
   function contact(){try{return JSON.parse(localStorage.getItem(CK)) || {}}catch(e){return {}}}
-  function prefill(){var c = contact(); if(c.name && !$('name').value) $('name').value = c.name; if(c.phone && !$('phone').value) $('phone').value = c.phone}
+  function prefill(){var c = contact(); if(c.name && !$('name').value) $('name').value = c.name; if(c.cc) $('cc').value = c.cc; if(c.phone && !$('phone').value) $('phone').value = c.phone}
 
   if(!D.ok){$('setup').hidden = false}
   else D.get('settings').then(function(s){if(s){R.H = s.rateH || R.H; R.T = s.rateT || R.T; if(s.rush2 != null) R.r2 = s.rush2/100; if(s.rush5 != null) R.r5 = s.rush5/100; update()}}).catch(function(){});
@@ -313,6 +313,7 @@ input[type=date]{min-width:0;max-width:100%}
   var today = new Date(); today.setHours(0,0,0,0);
   $('deadline').min = new Date(today - today.getTimezoneOffset()*60000).toISOString().slice(0,10);
   function type(){return document.querySelector('input[name=type]:checked').value}
+  ['phone','gatePhone'].forEach(function(i){$(i).addEventListener('input', function(){this.value = this.value.replace(/\D/g, '').slice(0, 10)})});
   function pages(){var p = parseInt($('pages').value,10); return isNaN(p) || p < 1 ? 0 : Math.min(p,200)}
   function update(){
     $('r1').textContent = 'about ' + inr(R.H) + ' per page'; $('r2').textContent = 'about ' + inr(R.T) + ' per page';
@@ -364,17 +365,17 @@ input[type=date]{min-width:0;max-width:100%}
     if(!D.ok){$('err').textContent = 'The site is not set up yet. See README.txt.'; return}
     if(!A){$('err').textContent = 'Please log in with your email first.'; layout(); return}
     if(!name){$('err').textContent = 'Please enter your name.'; $('name').focus(); return}
-    if(!D.phone(ph)){$('err').textContent = 'Please enter a valid mobile number (10 digits).'; $('phone').focus(); return}
+    if(!D.phoneFull($('cc').value, ph)){$('err').textContent = 'Please enter a valid 10-digit mobile number.'; $('phone').focus(); return}
     if(!subj){$('err').textContent = 'Please enter the subject.'; $('subject').focus(); return}
     if(!p){$('err').textContent = 'Please enter at least 1 page.'; return}
     $('err').textContent = ''; $('submit').disabled = true; $('submit').textContent = 'Sending…';
     var id = D.id(12), keys = [], pdfProblem = '';
     try{
       keys = imgs.map(function(_, i){return 'i'+i});
-      await D.put('orders/'+id+'/info', {name:name, phone:ph, subject:subj, details:$('details').value.trim(), type:type(), pages:p, deadline:$('deadline').value, est:inr(update()), imgs:keys});
+      await D.put('orders/'+id+'/info', {name:name, phone:D.phoneFull($('cc').value, ph), subject:subj, details:$('details').value.trim(), type:type(), pages:p, deadline:$('deadline').value, est:inr(update()), imgs:keys});
       for(var i = 0; i < keys.length; i++){await D.put('images/'+id+'/'+keys[i], {d:imgs[i]})}
       if(pdf){try{await D.api('PUT', '/api/orders/'+id+'/pdf', {name:pdf.name, d:await D.readDataUrl(pdf)})}catch(x){pdfProblem = x.status === 413 || x.status === 429 ? x.message : 'Your PDF could not be uploaded.'}}
-      try{localStorage.setItem(CK, JSON.stringify({name:name, phone:ph}))}catch(x){}
+      try{localStorage.setItem(CK, JSON.stringify({name:name, cc:$('cc').value, phone:ph}))}catch(x){}
       var l = mine(); l.unshift({id:id, t:subj+' · '+p+' pages'}); saveMine(l); fetchMine();
       $('form').reset(); imgs = []; pdf = null; drawThumbs(); drawPdf(); $('pdfNote').textContent = ''; prefill(); update(); openChat(id);
       if(pdfProblem) $('cerr').textContent = pdfProblem + ' Your request was sent. Attach the PDF again below.';
@@ -464,8 +465,8 @@ input[type=date]{min-width:0;max-width:100%}
     }catch(e){$('cerr').textContent = e.status === 403 && e.message ? e.message : 'Could not save. Try again.'}
   }
   $('savePhone').onclick = async function(){
-    var v = $('gatePhone').value; $('gateErr').textContent = '';
-    if(!D.phone(v)){$('gateErr').textContent = 'Please enter a valid mobile number.'; return}
+    var v = D.phoneFull($('gateCc').value, $('gatePhone').value); $('gateErr').textContent = '';
+    if(!v){$('gateErr').textContent = 'Please enter a valid 10-digit mobile number.'; return}
     try{await D.api('PUT', '/api/orders/'+cur+'/phone', {phone:v}); lastSig = ''; load()}catch(e){$('gateErr').textContent = e.message || 'Could not save. Try again.'}
   };
   $('send').onclick = async function(){

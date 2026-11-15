@@ -63,6 +63,11 @@ const limit = (name, max, ms) => (q, s, n) => {
 const wrap = f => (q, s) => f(q, s).catch(e => { console.error(e); s.status(500).json({ error: 'Server error' }); });
 const ID = /^[a-z0-9]{24}$/, KEY = /^[a-z0-9]{1,16}$/, MANUAL = ['In progress', 'Delivered', 'Paid', 'Cancelled'];
 const str = (v, n) => typeof v === 'string' ? v.trim().slice(0, n) : '';
+const phoneNorm = x => {
+  const m = /^\+(\d{1,4})(\d{10})$/.exec(str(x, 20));   // +<country code><exactly 10 digits>
+  if (!m || (m[1] === '91' && !/^[6-9]/.test(m[2]))) return '';
+  return m[1] + m[2];
+};
 let db;
 const col = n => db.collection(n);
 const getOrder = id => ID.test(id) ? col('orders').findOne({ _id: id }) : null;
@@ -112,9 +117,9 @@ app.get('/api/my/orders', cust, wrap(async (q, s) => {
 /* ---- customer: create request, read own chat ---- */
 app.post('/api/orders', limit('new', 15, 36e5), cust, wrap(async (q, s) => {
   const b = q.body || {}, pages = Math.round(+b.pages);
-  if (!ID.test(b.id) || !str(b.name, 80) || !str(b.subject, 120) || !(pages >= 1 && pages <= 200)) return s.status(400).json({ error: 'Invalid request' });
+  if (!ID.test(b.id) || !phoneNorm(b.phone) || !str(b.name, 80) || !str(b.subject, 120) || !(pages >= 1 && pages <= 200)) return s.status(400).json({ error: 'Invalid request' });
   const info = {
-    name: str(b.name, 80), email: q.email, subject: str(b.subject, 120), details: str(b.details, 3000),
+    name: str(b.name, 80), email: q.email, phone: phoneNorm(b.phone), subject: str(b.subject, 120), details: str(b.details, 3000),
     type: b.type === 'Handwritten' ? 'Handwritten' : 'Typed (Word/PDF)', pages,
     deadline: /^\d{4}-\d\d-\d\d$/.test(b.deadline) ? b.deadline : '', est: str(b.est, 30),
     imgs: (Array.isArray(b.imgs) ? b.imgs : []).filter(k => /^i[0-3]$/.test(k)).slice(0, 4), created: Date.now()
@@ -133,6 +138,12 @@ app.post('/api/orders/:id/chat', limit('chat', 150, 36e5), wrap(async (q, s) => 
   if (!text && !img) return s.status(400).json({ error: 'Empty message' });
   const r = await col('messages').insertOne({ oid: o._id, who: isAdmin(q) ? 'admin' : 'cust', text, img, t: Date.now() });
   s.json({ name: r.insertedId.toHexString() });
+}));
+app.put('/api/orders/:id/phone', limit('phone', 30, 36e5), wrap(async (q, s) => {
+  const o = await getOrder(q.params.id), ph = phoneNorm((q.body || {}).phone);
+  if (!o) return s.status(404).json({ error: 'No such request' });
+  if (!ph) return s.status(400).json({ error: 'Please enter a valid mobile number' });
+  await col('orders').updateOne({ _id: o._id }, { $set: { 'info.phone': ph } }); s.json({ phone: ph });
 }));
 app.put('/api/orders/:id/decision', limit('dec', 60, 36e5), wrap(async (q, s) => {
   const o = await getOrder(q.params.id), v = (q.body || {}).v, adm = isAdmin(q);

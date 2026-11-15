@@ -48,6 +48,13 @@
     if(raw.charAt(0) === '+' && /^\d{8,15}$/.test(d)) return d;
     return '';
   };
+  // country code (digits) + exactly 10 digit number -> '+CCNNNNNNNNNN'. '' means not valid.
+  D.phoneFull = function(cc, num){
+    cc = String(cc || '').replace(/\D/g, ''); num = String(num || '').replace(/\D/g, '');
+    if(!/^\d{1,4}$/.test(cc) || !/^\d{10}$/.test(num)) return '';
+    if(cc === '91' && !/^[6-9]/.test(num)) return '';
+    return '+' + cc + num;
+  };
   D.showPhone = function(d){d = String(d || ''); if(!d) return ''; return /^91\d{10}$/.test(d) ? '+91 ' + d.slice(2, 7) + ' ' + d.slice(7) : '+' + d};
   D.size = function(n){return n < 1048576 ? Math.max(1, Math.round(n / 1024)) + ' KB' : (n / 1048576).toFixed(1) + ' MB'};
   D.MAX_PDF = 8 * 1048576;
