@@ -28,7 +28,7 @@ button:disabled{opacity:.55}
 .item.on{border-color:var(--ink)}.item b{display:block}.item small{color:var(--muted)}
 .dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--bad);margin-right:6px}
 .chip{display:inline-block;font-size:.72rem;font-weight:700;padding:1px 8px;border-radius:99px;background:var(--hi);color:var(--hi-ink);margin-right:6px}
-.chip.Agreed,.chip.Paid{background:var(--wa);color:var(--wa-ink)}.chip.Cancelled{background:var(--rule);color:var(--muted)}
+.chip.Agreed,.chip.Paid{background:var(--wa);color:var(--wa-ink)}.chip.Cancelled{background:var(--rule);color:var(--muted)}.chip.Inprogress{background:#8fb8ff;color:#14214f}.chip.Delivered{background:#b7e4c7;color:#14214f}
 .detail{overflow:auto;padding:16px;display:grid;gap:14px;align-content:start}
 .empty{color:var(--muted);padding:40px 10px;text-align:center}
 .card{background:var(--card);border:1px solid var(--rule);border-radius:12px;padding:16px}
@@ -47,6 +47,14 @@ textarea{resize:vertical;min-height:60px}
 .fine{font-size:.78rem;color:var(--muted);margin:6px 0 0}
 .err{color:var(--bad);font-size:.85rem;min-height:1.2em;margin:0}
 .back{display:none}
+.bar{height:10px;border-radius:99px;background:var(--rule);overflow:hidden;margin:6px 0}
+.bar i{display:block;height:100%;background:var(--wa);border-radius:99px;transition:width .4s}
+label.chk{display:flex;align-items:center;gap:8px;font-size:.9rem;color:var(--ink);font-weight:600}
+label.chk input{width:auto;margin:0}
+.lnk{color:var(--ink);font-weight:600}
+.filerow{display:flex;justify-content:space-between;gap:8px;align-items:center;background:var(--field);border:1px solid var(--rule);border-radius:8px;padding:6px 10px;margin-top:6px;font-size:.9rem;overflow-wrap:anywhere}
+.lines{display:grid;grid-template-columns:1fr auto;gap:2px 12px;font-size:.88rem;margin:8px 0 0;color:var(--muted)}.lines dd{margin:0;text-align:right;color:var(--ink);font-weight:600}.lines dt{margin:0}
+@media (prefers-reduced-motion:reduce){.bar i{transition:none}}
 #login{position:fixed;inset:0;display:grid;place-items:center;background:var(--page);z-index:50;padding:20px}
 .lcard{width:min(380px,100%);display:grid;gap:12px}.lcard h2{margin:0}
 body.locked header,body.locked .app{display:none}body:not(.locked) #login{display:none}
@@ -72,7 +80,7 @@ dialog{border:0;padding:8px;background:transparent;max-width:92vw}dialog::backdr
 </header>
 
 <div class="app" id="app">
-  <aside class="list"><select id="filter" aria-label="Filter"><option value="">All requests</option></select><div id="items"></div></aside>
+  <aside class="list"><input type="search" id="search" placeholder="Search name, mobile or subject" aria-label="Search requests"><select id="filter" aria-label="Filter"><option value="">All requests</option></select><div id="items"></div></aside>
   <main class="detail" id="detail"></main>
 </div>
 
@@ -80,7 +88,7 @@ dialog{border:0;padding:8px;background:transparent;max-width:92vw}dialog::backdr
   <h2>Prices shown to customers</h2>
   <div class="grid"><label>Handwritten (₹ per page)<input type="number" id="rH" min="0"></label><label>Typed (₹ per page)<input type="number" id="rT" min="0"></label>
   <label>Rush: deadline in 1 day (+%)<input type="number" id="r2" min="0"></label><label>Rush: deadline in 5 days (+%)<input type="number" id="r5" min="0"></label></div>
-  <p class="fine">These set the starting estimate on your website. You still send a final price per request.</p>
+  <p class="fine">These set the starting estimate on your website. You still send a final price per request, and you can include or exclude the rush charge on each offer.</p>
   <div class="row"><button class="pri" id="saveSet">Save prices</button><button id="closeSet">Close</button><span class="fine" id="setMsg"></span></div>
 </div></dialog>
 <dialog id="zoom"><img id="zimg" alt="Enlarged photo"></dialog>
@@ -89,7 +97,7 @@ dialog{border:0;padding:8px;background:transparent;max-width:92vw}dialog::backdr
 <script>
 (function(){
   var D = window.DESK, $ = function(i){return document.getElementById(i)}, esc = D.esc, inr = D.inr;
-  var RK = 'assignment-desk-admin-refresh-v1', exp = 0, S = {}, cur = null, sig = '', busy = false;
+  var S = {}, cur = null, sig = '', busy = false;
   var MANUAL = ['In progress','Delivered','Paid','Cancelled'];
   var rates = {rateH:40, rateT:25, rush2:50, rush5:20};
 
@@ -110,9 +118,10 @@ dialog{border:0;padding:8px;background:transparent;max-width:92vw}dialog::backdr
   (async function(){try{var t = localStorage.getItem(RK); if(t){D.token = t; await D.get('orders'); enter()}}catch(e){D.token = null}})();
 
   /* ---------- data ---------- */
-  function status(o){return o.status || (o.decision === 'accepted' ? 'Agreed' : o.quote ? 'Negotiating' : 'New')}
+  function status(o){return o.status || (o.decision === 'accepted' ? (o.progress && o.progress.done > 0 ? 'In progress' : 'Agreed') : o.quote ? 'Negotiating' : 'New')}
   function last(o){var k = Object.keys(o.chat || {}).sort().pop(); return k ? o.chat[k] : null}
   function total(o){return o.quote ? o.quote.total : 0}
+  function digits(v){return String(v || '').replace(/\D/g, '')}
   async function poll(){
     try{await ensure(); S = (await D.get('orders')) || {}}catch(e){return}
     stats(); list(); live();
@@ -125,78 +134,127 @@ dialog{border:0;padding:8px;background:transparent;max-width:92vw}dialog::backdr
     $('sNew').textContent = n; $('sWait').textContent = w; $('sDue').textContent = inr(due); $('sPaid').textContent = inr(paid);
   }
   var fs = $('filter'); ['New','Negotiating','Agreed'].concat(MANUAL).forEach(function(s){var o = document.createElement('option'); o.value = o.textContent = s; fs.appendChild(o)});
-  fs.onchange = list;
+  fs.onchange = list; $('search').addEventListener('input', list);
   function list(){
-    var f = fs.value, ids = Object.keys(S).filter(function(k){return S[k].info && (!f || status(S[k]) === f)}).sort(function(a,b){return S[b].info.created - S[a].info.created});
-    $('items').innerHTML = ids.map(function(k){var o = S[k], i = o.info, l = last(o), s = status(o);
-      return '<button class="item'+(k===cur?' on':'')+'" data-id="'+k+'"><b>'+(l && l.who==='cust' && s!=='Paid' ? '<span class="dot" title="Customer wrote last"></span>' : '')+esc(i.name)+'</b><span class="chip '+s.replace(' ','')+'">'+s+'</span><small>'+esc(i.subject)+' · '+esc(i.pages)+' pg'+(o.quote?' · '+inr(total(o)):'')+'</small></button>'}).join('') || '<p class="empty">No requests yet. They appear here when a customer sends one.</p>';
+    var f = fs.value, qs = $('search').value.trim().toLowerCase();
+    var ids = Object.keys(S).filter(function(k){
+      var i = S[k].info; if(!i || (f && status(S[k]) !== f)) return false;
+      return !qs || (i.name + ' ' + i.subject + ' ' + (i.phone || '') + ' ' + D.showPhone(i.phone)).toLowerCase().indexOf(qs) > -1;
+    }).sort(function(a,b){return S[b].info.created - S[a].info.created});
+    $('items').innerHTML = ids.map(function(k){var o = S[k], i = o.info, l = last(o), s = status(o), pr = o.progress;
+      return '<button class="item'+(k===cur?' on':'')+'" data-id="'+k+'"><b>'+(l && l.who==='cust' && s!=='Paid' ? '<span class="dot" title="Customer wrote last"></span>' : '')+esc(i.name)+((o.pdfs||[]).length ? ' 📄' : '')+'</b><span class="chip '+s.replace(' ','')+'">'+s+'</span><small>'+esc(i.subject)+' · '+esc(i.pages)+' pg'+(o.quote?' · '+inr(total(o)):'')+(pr ? ' · '+pr.done+'/'+esc(i.pages)+' done' : '')+'</small></button>'}).join('') || '<p class="empty">'+(Object.keys(S).length ? 'No matching requests.' : 'No requests yet. They appear here when a customer sends one.')+'</p>';
   }
   $('items').onclick = function(e){var b = e.target.closest('.item'); if(!b) return; cur = b.getAttribute('data-id'); sig = ''; $('app').classList.add('show'); list(); detail()};
+
+  /* ---------- rush helper ---------- */
+  // days between the day the request was sent and the customer's deadline
+  function dayGap(i){if(!i.deadline) return null; var c = new Date(i.created); c.setHours(0,0,0,0); return Math.round((new Date(i.deadline + 'T00:00:00') - c) / 864e5)}
+  function rushSuggest(i){var g = dayGap(i); return g == null ? 0 : g <= 1 ? (+rates.rush2 || 0) : g <= 5 ? (+rates.rush5 || 0) : 0}
 
   /* ---------- detail ---------- */
   function detail(){
     var o = S[cur], d = $('detail'); if(!o){d.innerHTML = '<p class="empty">Select a request.</p>'; return}
     var i = o.info, q = o.quote || {}, ppp = q.ppp || (i.type === 'Handwritten' ? rates.rateH : rates.rateT);
+    var sug = rushSuggest(i), g = dayGap(i), rOn = q.ppp ? !!q.rushOn : sug > 0, rPct = q.ppp && q.rushPct != null ? q.rushPct : sug;
+    var ph = digits(i.phone), pdone = o.progress ? o.progress.done : 0;
     d.innerHTML = '<button class="back" id="back">← All requests</button>' +
-    '<section class="card"><h2>'+esc(i.name)+' · '+esc(i.subject)+'</h2><div class="fine" style="margin:0 0 8px">'+esc(i.type)+' · '+esc(i.pages)+' pages · deadline '+esc(D.date(i.deadline))+' · customer’s estimate '+esc(i.est||'-')+' · sent '+D.when(i.created)+'</div>'+
+    '<section class="card"><h2>'+esc(i.name)+' · '+esc(i.subject)+'</h2>'+
+      (ph ? '<div class="row" style="margin:0 0 8px"><b>Mobile: '+esc(D.showPhone(ph))+'</b><a class="lnk" href="tel:+'+ph+'">Call</a><a class="lnk" href="https://wa.me/'+ph+'" target="_blank" rel="noopener">WhatsApp</a></div>' : '<div class="err" style="margin:0 0 8px">No mobile number yet (older request). The customer is asked to add it before chatting.</div>')+
+      '<div class="fine" style="margin:0 0 8px">'+esc(i.type)+' · '+esc(i.pages)+' pages · deadline '+esc(D.date(i.deadline))+' · customer’s estimate '+esc(i.est||'-')+' · sent '+D.when(i.created)+'</div>'+
       '<div style="white-space:pre-wrap">'+esc(i.details || 'No written instructions.')+'</div>'+
+      ((o.pdfs||[]).length ? '<h2 style="margin:12px 0 0;font-size:.9rem">Customer’s PDF to be written</h2>'+o.pdfs.map(function(f){return '<div class="filerow"><span>📄 '+esc(f.name)+' · '+D.size(f.size)+' · '+D.when(f.t)+'</span><a class="lnk" href="/api/orders/'+cur+'/pdf/'+esc(f.k)+'" download>Download</a></div>'}).join('') : '')+
       ((i.imgs||[]).length ? '<div class="row">'+i.imgs.map(function(k){return '<img class="pic" data-oid="'+cur+'" data-k="'+esc(k)+'" alt="Photo">'}).join('')+'</div>' : '')+'</section>'+
     '<section class="card"><h2>Final price</h2><div class="grid"><label>Price per page (₹)<input id="ppp" type="number" min="0" value="'+ppp+'"></label>'+
-      '<label>Extra / discount (₹, use − for discount)<input id="extra" type="number" value="'+(q.extra||0)+'"></label><div><div class="fine" id="calc" style="margin:0"></div><div class="total" id="tot"></div></div></div>'+
+      '<label>Extra / discount (₹, use − for discount)<input id="extra" type="number" value="'+(q.extra||0)+'"></label><div><div class="total" id="tot"></div></div></div>'+
+      '<div class="row"><label class="chk"><input type="checkbox" id="rushOn"'+(rOn?' checked':'')+'> Include rush charge</label>'+
+        '<label style="width:110px">Rush (%)<input id="rushPct" type="number" min="0" max="300" value="'+rPct+'"></label></div>'+
+      '<div class="fine" id="rushHint">'+(g == null ? 'The customer gave no deadline.' : 'Deadline is '+g+(g === 1 ? ' day' : ' days')+' after the request. ' + (sug ? 'Suggested rush: '+sug+'%.' : 'No rush charge normally applies.'))+' Untick to waive it; the customer sees it as waived.</div>'+
+      '<dl class="lines" id="calc"></dl>'+
       '<div class="row"><button class="pri" id="offer">Send price offer</button><span class="fine" id="offState"></span></div>'+
       '<div class="row"><label style="min-width:170px">Status<select id="st"><option value="">Automatic</option>'+MANUAL.map(function(s){return '<option'+(o.status===s?' selected':'')+'>'+s+'</option>'}).join('')+'</select></label></div></section>'+
+    '<section class="card"><h2>Work progress (the customer sees this live)</h2>'+
+      '<div class="bar" id="pbar"><i style="width:0"></i></div><div class="fine" id="pText" style="margin:0"></div>'+
+      '<div class="row" style="align-items:end"><button id="pgMinus" aria-label="One page less">−</button><label style="width:110px">Pages done<input id="pgDone" type="number" min="0" max="'+esc(i.pages)+'" value="'+pdone+'"></label><button id="pgPlus" aria-label="One page more">+</button><button id="pgAll">All '+esc(i.pages)+' done</button></div>'+
+      '<label style="margin-top:8px">Note for the customer (optional)<input id="pgNote" maxlength="200" placeholder="e.g. Pages 1 to 4 done, 5 to 10 will be ready tomorrow" value="'+esc(o.progress ? o.progress.note : '')+'"></label>'+
+      '<div class="row"><button class="pri" id="pgSave">Update progress</button><span class="fine" id="pgMsg"></span></div></section>'+
     '<section class="card"><h2>Chat</h2><div class="thread" id="thread"></div>'+
       '<textarea id="msg" rows="2" placeholder="Reply to the customer"></textarea>'+
-      '<div class="row"><button class="pri" id="send">Send</button><input type="file" id="mfile" accept="image/*" style="max-width:220px"><span class="err" id="cerr"></span></div></section>'+
+      '<div class="row"><button class="pri" id="send">Send</button><span class="err" id="cerr"></span></div>'+
+      '<p class="fine">Only the customer can attach photos or PDFs.</p></section>'+
     '<section class="card"><button class="danger" id="del">Delete this request</button></section>';
     calc(); live(true); D.fillImages(d);
   }
-  function calc(){var p = +$('ppp').value || 0, x = +$('extra').value || 0, pg = +S[cur].info.pages || 0;
-    $('calc').textContent = pg+' pages × '+inr(p)+(x ? (x>0?' + ':' − ')+inr(Math.abs(x)) : ''); $('tot').textContent = inr(pg*p + x)}
+  function calc(){
+    var p = +$('ppp').value || 0, x = +$('extra').value || 0, pg = +S[cur].info.pages || 0, on = $('rushOn').checked, pct = +$('rushPct').value || 0;
+    var sub = pg*p, rush = on ? Math.round(sub*pct/100) : 0;
+    $('rushPct').disabled = !on;
+    $('calc').innerHTML = '<dt>'+pg+' pages × '+inr(p)+'</dt><dd>'+inr(sub)+'</dd>'+
+      (on ? '<dt>Rush charge ('+pct+'%)</dt><dd>+ '+inr(rush)+'</dd>' : (pct > 0 ? '<dt>Rush charge</dt><dd>Excluded</dd>' : ''))+
+      (x ? '<dt>'+(x>0?'Extra':'Discount')+'</dt><dd>'+(x>0?'+ ':'− ')+inr(Math.abs(x))+'</dd>' : '');
+    $('tot').textContent = inr(sub + rush + x);
+  }
+  function drawProg(o){
+    var pg = +o.info.pages || 0, pr = o.progress, dn = pr ? Math.min(pr.done, pg) : 0;
+    $('pbar').firstChild.style.width = (pg ? Math.round(dn / pg * 100) : 0) + '%';
+    $('pText').textContent = pr ? dn + ' of ' + pg + ' pages done · customer last updated ' + D.when(pr.t) : 'No progress shared yet. The customer sees nothing until you press Update.';
+  }
   function live(force){
     var o = S[cur]; if(!o || !$('thread')) return;
-    var n = Object.keys(o.chat||{}).length, s = n + '|' + JSON.stringify(o.quote||'') + '|' + (o.decision||'');
+    var n = Object.keys(o.chat||{}).length, s = n + '|' + JSON.stringify(o.quote||'') + '|' + (o.decision||'') + '|' + JSON.stringify(o.progress||'');
     if(!force && s === sig) return; sig = s;
     var t = $('thread'), end = t.scrollHeight - t.scrollTop - t.clientHeight < 80 || !t.children.length;
     t.innerHTML = Object.keys(o.chat||{}).sort().map(function(k){var m = o.chat[k];
       return '<div class="b '+(m.who==='admin'?'admin':'cust')+'">'+esc(m.text)+(m.img?'<img class="pic" data-oid="'+cur+'" data-k="'+esc(m.img)+'" alt="Photo">':'')+'<small>'+(m.who==='admin'?'You':esc(o.info.name))+' · '+D.when(m.t)+'</small></div>'}).join('') || '<p class="fine">No messages yet.</p>';
     if(end) t.scrollTop = t.scrollHeight;
     $('offState').textContent = o.decision === 'accepted' ? 'Customer accepted ' + inr(total(o)) : o.decision === 'declined' ? 'Customer declined ' + inr(total(o)) : o.quote ? 'Offer sent: ' + inr(total(o)) + ', waiting for the customer' : 'No offer sent yet';
-    D.fillImages(t);
+    drawProg(o); D.fillImages(t);
   }
-  function chatPost(text, img){return D.post('orders/'+cur+'/chat', {who:'admin', text:text, img:img||null, t:Date.now()})}
-  $('detail').addEventListener('input', function(e){if(e.target.id === 'ppp' || e.target.id === 'extra') calc()});
+  function chatPost(text){return D.post('orders/'+cur+'/chat', {text:text})}
+  function setDone(v){var m = +S[cur].info.pages || 0; $('pgDone').value = Math.max(0, Math.min(m, Math.round(+v || 0)))}
+  $('detail').addEventListener('input', function(e){if(['ppp','extra','rushPct'].indexOf(e.target.id) > -1) calc()});
   $('detail').addEventListener('change', async function(e){
+    if(e.target.id === 'rushOn') calc();
     if(e.target.id === 'st'){try{await ensure(); await D.put('orders/'+cur+'/status', e.target.value || null); await poll()}catch(x){$('cerr').textContent = 'Could not save status.'}}
   });
   $('detail').addEventListener('click', async function(e){
     var id = e.target.id, o = S[cur]; if(!o || busy) return;
     if(id === 'back') $('app').classList.remove('show');
-    if(id === 'offer'){
-      var p = +$('ppp').value, x = +$('extra').value || 0, pg = +o.info.pages;
-      if(!(p > 0)){$('cerr').textContent = 'Enter a price per page first.'; return}
+    if(id === 'pgMinus') setDone((+$('pgDone').value || 0) - 1);
+    if(id === 'pgPlus') setDone((+$('pgDone').value || 0) + 1);
+    if(id === 'pgAll') setDone(o.info.pages);
+    if(id === 'pgSave'){
+      var dn = Math.round(+$('pgDone').value), pg = +o.info.pages; $('pgMsg').textContent = '';
+      if(!(dn >= 0 && dn <= pg)){$('pgMsg').textContent = 'Enter a number from 0 to ' + pg + '.'; return}
       busy = true; e.target.disabled = true;
+      try{await ensure(); await D.api('PUT', '/api/orders/'+cur+'/progress', {done:dn, note:$('pgNote').value.trim()}); await poll(); $('pgMsg').textContent = 'Saved. The customer sees ' + dn + ' of ' + pg + ' pages done.'}
+      catch(er){$('pgMsg').textContent = er.message && er.status === 400 ? er.message : 'Could not update progress.'}
+      busy = false; e.target.disabled = false;
+    }
+    if(id === 'offer'){
+      var p = +$('ppp').value, x = +$('extra').value || 0, pg2 = +o.info.pages;
+      if(!(p > 0)){$('cerr').textContent = 'Enter a price per page first.'; return}
+      busy = true; e.target.disabled = true; $('cerr').textContent = '';
       try{
-        await ensure(); var tt = pg*p + x;
-        await D.put('orders/'+cur+'/quote', {ppp:p, extra:x, pages:pg, total:tt, t:Date.now()});
-        await D.put('orders/'+cur+'/decision', null);
-        await chatPost('Final price offer: '+inr(p)+' per page × '+pg+' pages'+(x?(x>0?' + '+inr(x)+' extra':' − '+inr(-x)+' discount'):'')+' = '+inr(tt)+'. You can accept it above, or tell me what price works for you.');
+        await ensure();
+        // the server works out the rush amount and total, and clears the customer's earlier answer
+        var qt = await D.put('orders/'+cur+'/quote', {ppp:p, extra:x, rushOn:$('rushOn').checked, rushPct:+$('rushPct').value || 0});
+        var txt = 'Final price offer: '+inr(qt.ppp)+' per page × '+qt.pages+' pages'+
+          (qt.rushOn && qt.rush ? ' + '+inr(qt.rush)+' rush charge ('+qt.rushPct+'%)' : qt.rushPct > 0 ? ' (rush charge waived)' : '')+
+          (qt.extra ? (qt.extra>0?' + '+inr(qt.extra)+' extra':' − '+inr(-qt.extra)+' discount') : '')+' = '+inr(qt.total)+'. You can accept it above, or tell me what price works for you.';
+        await chatPost(txt);
         await poll(); live(true);
-      }catch(er){$('cerr').textContent = 'Could not send the offer.'}
+      }catch(er){$('cerr').textContent = er.status === 400 && er.message ? er.message : 'Could not send the offer.'}
       busy = false; e.target.disabled = false;
     }
     if(id === 'send'){
-      var text = $('msg').value.trim(), f = $('mfile').files[0]; if(!text && !f) return;
+      var text = $('msg').value.trim(); if(!text) return;
       busy = true; e.target.disabled = true; $('cerr').textContent = '';
-      try{
-        await ensure(); var k = null;
-        if(f){k = 'a'+D.id(6); await D.put('images/'+cur+'/'+k, {d: await D.shrink(f, 1000)})}
-        await chatPost(text, k); $('msg').value = ''; $('mfile').value = ''; await poll(); live(true);
-      }catch(er){$('cerr').textContent = 'Message not sent.'}
+      try{await ensure(); await chatPost(text); $('msg').value = ''; await poll(); live(true)}
+      catch(er){$('cerr').textContent = 'Message not sent.'}
       busy = false; e.target.disabled = false;
     }
-    if(id === 'del' && confirm('Delete this request, its chat and photos?')){
-      try{await ensure(); await D.put('orders/'+cur, null); await D.put('images/'+cur, null); cur = null; $('app').classList.remove('show'); await poll(); detail()}catch(er){alert('Could not delete.')}
+    if(id === 'del' && confirm('Delete this request, its chat, photos and PDFs?')){
+      try{await ensure(); await D.put('orders/'+cur, null); cur = null; $('app').classList.remove('show'); await poll(); detail()}catch(er){alert('Could not delete.')}
     }
   });
 

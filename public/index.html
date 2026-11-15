@@ -84,8 +84,22 @@ details{background:var(--card);border:1px solid var(--rule);border-radius:10px;p
 summary{cursor:pointer;font-weight:600}details p{margin:8px 0 0;color:var(--muted)}
 footer{padding:48px 0 70px;color:var(--muted);font-size:.9rem}
 dialog{border:0;padding:8px;background:transparent;max-width:92vw}dialog::backdrop{background:rgba(5,10,30,.7)}dialog img{max-width:90vw;max-height:85vh;border-radius:10px}
+.status{display:inline-block;font-size:.72rem;font-weight:700;padding:1px 10px;border-radius:99px;background:var(--hi);color:var(--hi-ink);vertical-align:middle;margin-left:4px}
+.status.good{background:var(--wa);color:var(--wa-ink)}
+.prog{background:var(--field);border:1px solid var(--rule);border-radius:10px;padding:12px;margin-bottom:12px}
+.bar{height:12px;border-radius:99px;background:var(--rule);overflow:hidden;margin:8px 0}
+.bar i{display:block;height:100%;background:var(--wa);border-radius:99px;transition:width .6s}
+.mini{margin:8px 0 0;display:grid;grid-template-columns:1fr auto;gap:4px 12px;font-size:.9rem}
+.mini dt{color:var(--muted)}.mini dd{margin:0;text-align:right;font-weight:600}
+.files{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.filechip{display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--card);border:1px solid var(--rule);border-radius:8px;padding:6px 10px;font-size:.9rem;overflow-wrap:anywhere}
+.filechip button{width:26px;height:26px;border-radius:50%;border:0;background:var(--margin);color:#fff;cursor:pointer;line-height:1;flex:none}
+.filechip a{color:var(--ink);font-weight:600}
+.gate{border:2px dashed var(--margin);border-radius:12px;padding:14px;margin-top:12px;display:grid;gap:8px}
+.gate p{margin:0}
+.fine.ok{color:var(--wa)}
 [hidden]{display:none!important}
-@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.bar i{transition:none}}
 </style>
 </head>
 <body>
@@ -93,16 +107,17 @@ dialog{border:0;padding:8px;background:transparent;max-width:92vw}dialog::backdr
   <nav>Assignment Desk</nav>
   <header>
     <h1>Send your request. <mark>Agree the price</mark> in chat.</h1>
-    <p class="lead">Share the subject, pages, deadline and photos of your instructions. We chat here, settle the final price per page, and only then continue on WhatsApp.</p>
+    <p class="lead">Share the subject, pages, deadline, your mobile number and photos or a PDF of your instructions. We chat here, settle the final price per page, and only then continue on WhatsApp.</p>
     <a class="btn" href="#order">Request an assignment</a> <span class="note">No payment to send a request</span>
   </header>
 
   <section aria-labelledby="how">
     <h2 id="how">How it works</h2>
     <ol class="steps">
-      <li><b>Send your request</b><span>Fill the form and add photos of the topic, notes or sample.</span></li>
+      <li><b>Send your request</b><span>Fill the form with your mobile number. Add photos, or upload the PDF you want written.</span></li>
       <li><b>Chat and agree the price</b><span>Talk to me here. I send a final price per page, you accept or negotiate.</span></li>
       <li><b>Continue on WhatsApp</b><span>Once you accept the price, a WhatsApp button appears to finish the order.</span></li>
+      <li><b>Watch the progress</b><span>While I write, you see how many pages are done, live, in your chat.</span></li>
     </ol>
   </section>
 
@@ -115,9 +130,15 @@ dialog{border:0;padding:8px;background:transparent;max-width:92vw}dialog::backdr
       <form class="card" id="form" novalidate>
         <div class="two">
           <label>Your name<input id="name" type="text" autocomplete="name" placeholder="Full name"></label>
-          <label>Subject<input id="subject" type="text" placeholder="e.g. Economics"></label>
+          <label>Mobile number<input id="phone" type="tel" autocomplete="tel" inputmode="tel" placeholder="10-digit mobile number" required></label>
         </div>
+        <label>Subject<input id="subject" type="text" placeholder="e.g. Economics"></label>
         <label>Topic and instructions<textarea id="details" placeholder="Topic, word limit, university format, anything your teacher asked for"></textarea></label>
+        <div class="lab">Have a PDF you want written out? Upload it here (optional, max 8 MB)
+          <input id="pdfFile" type="file" accept="application/pdf,.pdf">
+          <div class="files" id="pdfBox"></div>
+          <span class="fine" id="pdfNote" style="margin:0"></span>
+        </div>
         <div class="lab">Photos of instructions or notes (optional, up to 4)
           <input id="files" type="file" accept="image/*" multiple>
           <div class="thumbs" id="thumbs"></div>
@@ -134,7 +155,7 @@ dialog{border:0;padding:8px;background:transparent;max-width:92vw}dialog::backdr
         </div>
         <p class="err" id="err" role="alert"></p>
         <button type="submit" class="btn" id="submit">Send request and start chat</button>
-        <p class="fine">This only sends your request to me. The final price is agreed in the chat.</p>
+        <p class="fine">This only sends your request to me. Your mobile number is used only to contact you about this assignment. The final price is agreed in the chat.</p>
       </form>
       <aside class="card quote" aria-live="polite">
         <h3 style="margin:0 0 10px">Starting estimate</h3>
@@ -148,18 +169,27 @@ dialog{border:0;padding:8px;background:transparent;max-width:92vw}dialog::backdr
     <div class="card chatbox" id="chatWrap" hidden>
       <div class="chathead"><h3>Chat about your request</h3><button class="btn ghost" id="newReq" style="padding:8px 14px">New request</button></div>
       <div class="info" id="infoBox"></div>
+      <div class="prog" id="progBox" hidden aria-live="polite"></div>
       <div class="thread" id="thread" aria-live="polite"></div>
       <div id="offer"></div>
-      <div class="composer">
+      <div class="gate" id="phoneGate" hidden>
+        <p><b>Please add your mobile number to continue.</b></p>
+        <input id="gatePhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="10-digit mobile number" aria-label="Mobile number">
+        <div class="row" style="display:flex;gap:8px;align-items:center"><button class="btn" id="savePhone" type="button">Save number</button><span class="err" id="gateErr" role="alert"></span></div>
+      </div>
+      <div class="composer" id="composer">
         <textarea id="msg" placeholder="Write a message. Ask a question or tell me the price you have in mind." rows="2"></textarea>
-        <div class="row"><button class="btn" id="send">Send</button><input type="file" id="mfile" accept="image/*" style="max-width:220px"><span class="fine" id="cerr" role="alert"></span></div>
+        <div class="row"><button class="btn" id="send">Send</button><input type="file" id="mfile" accept="image/*,application/pdf,.pdf" aria-label="Attach a photo or PDF" style="max-width:220px"><span class="fine" id="cerr" role="alert"></span></div>
+        <span class="fine" style="margin:0">You can attach a photo or a PDF (max 8 MB).</span>
       </div>
     </div>
   </section>
 
   <section aria-labelledby="faq">
     <h2 id="faq">Common questions</h2>
-    <details><summary>How is the price decided?</summary><p>I read your instructions and send a price per page. You can accept it or reply in the chat to negotiate. A rush deadline can raise the price.</p></details>
+    <details><summary>How is the price decided?</summary><p>I read your instructions and send a price per page. You can accept it or reply in the chat to negotiate. A close deadline can add a rush charge, which is shown as its own line in my offer so you can see exactly what it is.</p></details>
+    <details><summary>Can I upload a PDF to get it written?</summary><p>Yes. Attach your PDF in the request form (up to 8 MB), or add it later from the chat. I will write it out from that file.</p></details>
+    <details><summary>Can I see how much is done?</summary><p>Yes. While I work, the number of finished pages is updated live in your chat.</p></details>
     <details><summary>When does WhatsApp come in?</summary><p>After you accept the final price. A WhatsApp button then appears here so we can finish the order and payment.</p></details>
     <details><summary>How do I come back to my chat?</summary><p>Open this website on the same phone or browser. Your requests are listed at the top of this section.</p></details>
   </section>
@@ -172,10 +202,12 @@ dialog{border:0;padding:8px;background:transparent;max-width:92vw}dialog::backdr
 (function(){
   var D = window.DESK, $ = function(i){return document.getElementById(i)}, esc = D.esc, inr = D.inr;
   var R = {H:40, T:25, r2:.5, r5:.2};      // fallback prices; the admin panel overrides them
-  var imgs = [], cur = null, lastSig = '', busy = false;
-  var MK = 'assignment-desk-mine-v1';
+  var imgs = [], pdf = null, cur = null, lastSig = '', busy = false;
+  var MK = 'assignment-desk-mine-v1', CK = 'assignment-desk-contact-v1';
   function mine(){try{return JSON.parse(localStorage.getItem(MK)) || []}catch(e){return []}}
   function saveMine(l){try{localStorage.setItem(MK, JSON.stringify(l.slice(0, 20)))}catch(e){}}
+  function contact(){try{return JSON.parse(localStorage.getItem(CK)) || {}}catch(e){return {}}}
+  function prefill(){var c = contact(); if(c.name && !$('name').value) $('name').value = c.name; if(c.phone && !$('phone').value) $('phone').value = c.phone}
 
   if(!D.ok){$('setup').hidden = false}
   else D.get('settings').then(function(s){if(s){R.H = s.rateH || R.H; R.T = s.rateT || R.T; if(s.rush2 != null) R.r2 = s.rush2/100; if(s.rush5 != null) R.r5 = s.rush5/100; update()}}).catch(function(){});
@@ -192,14 +224,14 @@ dialog{border:0;padding:8px;background:transparent;max-width:92vw}dialog::backdr
     var rush = sub*pct;
     $('lines').innerHTML = '<dt>'+esc(type())+'</dt><dd>'+inr(rate)+' / page</dd><dt>Pages</dt><dd>'+p+'</dd><dt>Subtotal</dt><dd>'+inr(sub)+'</dd>' + (rush ? '<dt>Rush ('+Math.round(pct*100)+'%)</dt><dd>'+inr(rush)+'</dd>' : '');
     $('total').textContent = inr(sub + rush);
-    $('rushNote').textContent = rush ? 'A rush charge applies because your deadline is close.' : '';
+    $('rushNote').textContent = rush ? 'A rush charge may apply because your deadline is close. It is shown separately in my offer.' : '';
     return sub + rush;
   }
   $('plus').onclick = function(){$('pages').value = Math.min(200, (pages()||0)+1); update()};
   $('minus').onclick = function(){$('pages').value = Math.max(1, (pages()||2)-1); update()};
   ['pages','deadline','t1','t2'].forEach(function(i){$(i).addEventListener('input', update); $(i).addEventListener('change', update)});
 
-  /* ---- photos on the form ---- */
+  /* ---- photos and PDF on the form ---- */
   function drawThumbs(){
     $('thumbs').innerHTML = imgs.map(function(d,i){return '<div><img src="'+d+'" alt="Photo '+(i+1)+'"><button type="button" data-i="'+i+'" aria-label="Remove photo">×</button></div>'}).join('');
   }
@@ -212,24 +244,46 @@ dialog{border:0;padding:8px;background:transparent;max-width:92vw}dialog::backdr
     this.value = ''; drawThumbs();
   };
   $('thumbs').onclick = function(e){var i = e.target.getAttribute('data-i'); if(i != null){imgs.splice(+i,1); drawThumbs()}};
+  function drawPdf(){
+    $('pdfBox').innerHTML = pdf ? '<div class="filechip"><span>📄 '+esc(pdf.name)+' · '+D.size(pdf.size)+'</span><button type="button" id="pdfX" aria-label="Remove PDF">×</button></div>' : '';
+  }
+  $('pdfFile').onchange = async function(){
+    var f = this.files[0]; this.value = ''; $('err').textContent = ''; $('pdfNote').textContent = '';
+    if(!f) return;
+    if(!D.isPdf(f)){$('err').textContent = 'Please choose a PDF file.'; return}
+    if(f.size > D.MAX_PDF){$('err').textContent = 'That PDF is larger than 8 MB.'; return}
+    pdf = f; drawPdf();
+    var n = await D.pdfPages(f);
+    if(pdf !== f) return;
+    if(n){$('pages').value = n; update(); $('pdfNote').textContent = 'We counted about '+n+' pages in your PDF and set the page count below. Change it if you want a different number of written pages.'}
+    else $('pdfNote').textContent = 'PDF added. Please check the number of pages below.';
+  };
+  $('pdfBox').onclick = function(e){if(e.target.id === 'pdfX'){pdf = null; drawPdf(); $('pdfNote').textContent = ''}};
 
   /* ---- submit ---- */
   $('form').onsubmit = async function(e){
     e.preventDefault();
-    var name = $('name').value.trim(), subj = $('subject').value.trim(), p = pages();
+    var name = $('name').value.trim(), subj = $('subject').value.trim(), p = pages(), ph = $('phone').value.trim();
     if(!D.ok){$('err').textContent = 'The site is not set up yet. See README.txt.'; return}
     if(!name){$('err').textContent = 'Please enter your name.'; $('name').focus(); return}
+    if(!D.phone(ph)){$('err').textContent = 'Please enter a valid mobile number (10 digits).'; $('phone').focus(); return}
     if(!subj){$('err').textContent = 'Please enter the subject.'; $('subject').focus(); return}
     if(!p){$('err').textContent = 'Please enter at least 1 page.'; return}
     $('err').textContent = ''; $('submit').disabled = true; $('submit').textContent = 'Sending…';
-    var id = D.id(12), keys = [];
+    var id = D.id(12), keys = [], pdfProblem = '';
     try{
       keys = imgs.map(function(_, i){return 'i'+i});
-      await D.put('orders/'+id+'/info', {name:name, subject:subj, details:$('details').value.trim(), type:type(), pages:p, deadline:$('deadline').value, est:inr(update()), imgs:keys, created:Date.now()});
+      await D.put('orders/'+id+'/info', {name:name, phone:ph, subject:subj, details:$('details').value.trim(), type:type(), pages:p, deadline:$('deadline').value, est:inr(update()), imgs:keys});
       for(var i = 0; i < keys.length; i++){await D.put('images/'+id+'/'+keys[i], {d:imgs[i]})}
+      if(pdf){try{await D.api('PUT', '/api/orders/'+id+'/pdf', {name:pdf.name, d:await D.readDataUrl(pdf)})}catch(x){pdfProblem = x.status === 413 || x.status === 429 ? x.message : 'Your PDF could not be uploaded.'}}
+      try{localStorage.setItem(CK, JSON.stringify({name:name, phone:ph}))}catch(x){}
       var l = mine(); l.unshift({id:id, t:subj+' · '+p+' pages'}); saveMine(l);
-      $('form').reset(); imgs = []; drawThumbs(); update(); openChat(id);
-    }catch(er){$('err').textContent = 'Could not send. Check your internet and try again.'}
+      $('form').reset(); imgs = []; pdf = null; drawThumbs(); drawPdf(); $('pdfNote').textContent = ''; prefill(); update(); openChat(id);
+      if(pdfProblem) $('cerr').textContent = pdfProblem + ' Your request was sent. Attach the PDF again below.';
+    }catch(er){
+      var msg = (er.status === 400 || er.status === 429) && er.message ? er.message : 'Could not send. Check your internet and try again.';
+      $('err').textContent = msg === 'Invalid request' ? 'Please check the details and try again.' : msg;
+    }
     $('submit').disabled = false; $('submit').textContent = 'Send request and start chat';
   };
 
@@ -253,20 +307,46 @@ dialog{border:0;padding:8px;background:transparent;max-width:92vw}dialog::backdr
     var q = d.quote, i = d.info;
     return 'https://wa.me/'+D.cfg.whatsapp+'?text='+encodeURIComponent('Hello! The price is agreed for my '+i.subject+' assignment ('+i.pages+' pages): '+inr(q.total)+' ('+inr(q.ppp)+' per page). My name is '+i.name+'. Request ID: '+cur.slice(0,8));
   }
+  function custStatus(d){
+    if(d.status) return d.status;
+    if(d.decision === 'accepted') return d.progress && d.progress.done > 0 ? 'In progress' : 'Price agreed';
+    return d.quote ? 'Price offered' : 'Request received';
+  }
+  // the price breakdown: pages x price, rush (shown or waived), extra or discount, total
+  function breakdown(q){
+    var h = '<dl class="mini"><dt>'+inr(q.ppp)+' per page × '+q.pages+' pages</dt><dd>'+inr(q.ppp*q.pages)+'</dd>';
+    if(q.rushOn && q.rush) h += '<dt>Rush charge ('+q.rushPct+'%)</dt><dd>+ '+inr(q.rush)+'</dd>';
+    else if(!q.rushOn && q.rushPct > 0) h += '<dt>Rush charge</dt><dd>Waived</dd>';
+    if(q.extra) h += '<dt>'+(q.extra > 0 ? 'Extra' : 'Discount')+'</dt><dd>'+(q.extra > 0 ? '+ ' : '− ')+inr(Math.abs(q.extra))+'</dd>';
+    return h + '</dl>';
+  }
   function render(d){
-    var msgs = Object.keys(d.chat || {}).sort().map(function(k){return [k, d.chat[k]]});
-    var sig = msgs.length + '|' + JSON.stringify(d.quote || '') + '|' + (d.decision || '');
+    var msgs = Object.keys(d.chat || {}).sort().map(function(k){return [k, d.chat[k]]}), i = d.info || {};
+    var sig = msgs.length + '|' + JSON.stringify(d.quote || '') + '|' + (d.decision || '') + '|' + JSON.stringify(d.progress || '') + '|' + (d.status || '') + '|' + (d.pdfs || []).length + '|' + (i.phone || '');
     if(sig === lastSig) return; lastSig = sig;
-    var i = d.info || {};
-    $('infoBox').innerHTML = '<b>'+esc(i.subject)+'</b> · '+esc(i.type)+' · '+esc(i.pages)+' pages · deadline '+esc(D.date(i.deadline)) +
-      (i.details ? '<br>'+esc(i.details) : '') + ((i.imgs||[]).length ? '<div class="thumbs" style="margin-top:8px">'+i.imgs.map(function(k){return '<img class="pic" data-oid="'+cur+'" data-k="'+esc(k)+'" alt="Your photo">'}).join('')+'</div>' : '');
+    var st = custStatus(d), good = st === 'Price agreed' || st === 'In progress' || st === 'Delivered' || st === 'Paid';
+    $('infoBox').innerHTML = '<b>'+esc(i.subject)+'</b><span class="status'+(good ? ' good' : '')+'">'+esc(st)+'</span><br>'+esc(i.type)+' · '+esc(i.pages)+' pages · deadline '+esc(D.date(i.deadline)) +
+      (i.phone ? '<br>Your mobile: '+esc(D.showPhone(i.phone)) : '') +
+      (i.details ? '<br>'+esc(i.details) : '') +
+      ((d.pdfs||[]).length ? '<div class="files">'+d.pdfs.map(function(f){return '<div class="filechip"><span>📄 '+esc(f.name)+' · '+D.size(f.size)+'</span><a href="/api/orders/'+cur+'/pdf/'+esc(f.k)+'" download>Download</a></div>'}).join('')+'</div>' : '') +
+      ((i.imgs||[]).length ? '<div class="thumbs" style="margin-top:8px">'+i.imgs.map(function(k){return '<img class="pic" data-oid="'+cur+'" data-k="'+esc(k)+'" alt="Your photo">'}).join('')+'</div>' : '');
+    var pr = d.progress, pg = +i.pages || 0;
+    if(pr){
+      var done = Math.min(+pr.done || 0, pg), pct = pg ? Math.round(done / pg * 100) : 0;
+      $('progBox').hidden = false;
+      $('progBox').innerHTML = '<b>Work progress</b><div class="bar" role="progressbar" aria-label="Pages done" aria-valuemin="0" aria-valuemax="'+pg+'" aria-valuenow="'+done+'"><i style="width:'+pct+'%"></i></div>'+
+        '<div><b>'+done+' of '+pg+' pages done</b>'+(done >= pg && pg ? ' · All pages are finished' : '')+'</div>'+(pr.note ? '<div class="fine">'+esc(pr.note)+'</div>' : '')+'<div class="fine">Updated '+D.when(pr.t)+'</div>';
+    }else{$('progBox').hidden = true; $('progBox').innerHTML = ''}
     var t = $('thread'), atEnd = t.scrollHeight - t.scrollTop - t.clientHeight < 80 || !t.children.length;
     t.innerHTML = msgs.length ? msgs.map(function(m){var x = m[1]; return '<div class="b '+(x.who==='cust'?'cust':'admin')+'">'+esc(x.text)+(x.img?'<img class="pic" data-oid="'+cur+'" data-k="'+esc(x.img)+'" alt="Photo">':'')+'<small>'+(x.who==='cust'?'You':'Assignment Desk')+' · '+D.when(x.t)+'</small></div>'}).join('') : '<p class="fine">No messages yet. Say hello, or wait for my price offer.</p>';
     if(atEnd) t.scrollTop = t.scrollHeight;
+    // old requests without a mobile number must add one before chatting or answering a price
+    $('phoneGate').hidden = !!i.phone; $('composer').hidden = !i.phone;
     var q = d.quote, o = $('offer');
-    if(!q) o.innerHTML = '<p class="fine">I am reading your request and will send my final price per page here soon.</p>';
+    if(!i.phone) o.innerHTML = '';
+    else if(!q) o.innerHTML = '<p class="fine">I am reading your request and will send my final price per page here soon.</p>';
     else{
-      var det = '<h4>Final price offer: '+inr(q.total)+'</h4><div class="fine" style="margin:0">'+inr(q.ppp)+' per page × '+q.pages+' pages'+(q.extra ? (q.extra>0?' + '+inr(q.extra)+' extra':' − '+inr(-q.extra)+' discount') : '')+'</div>';
+      var det = '<h4>Final price offer: '+inr(q.total)+'</h4>'+breakdown(q);
       if(d.decision === 'accepted') o.innerHTML = '<div class="offer ok">'+det+'<p style="margin:8px 0 0"><b>Price agreed.</b> Continue on WhatsApp to finish your order.</p><div class="row"><a class="btn wa" href="'+wa(d)+'" target="_blank" rel="noopener">Continue on WhatsApp</a></div></div>';
       else o.innerHTML = '<div class="offer">'+det+(d.decision==='declined' ? '<p class="fine">You declined this price. Tell me what works for you in the chat.</p>' : '<p class="fine">Accept it to continue on WhatsApp, or reply below to negotiate.</p>')+'<div class="row"><button class="btn" id="acc">Accept this price</button>'+(d.decision==='declined'?'':'<button class="btn ghost" id="dec">Not at this price</button>')+'</div></div>';
       var a = $('acc'); if(a) a.onclick = function(){decide('accepted', q)};
@@ -275,25 +355,35 @@ dialog{border:0;padding:8px;background:transparent;max-width:92vw}dialog::backdr
     D.fillImages($('chatWrap'));
   }
   async function post(text, img){
-    return D.post('orders/'+cur+'/chat', {who:'cust', text:text, img:img || null, t:Date.now()});
+    return D.post('orders/'+cur+'/chat', {text:text, img:img || null});
   }
   async function decide(v, q){
     try{
       await D.put('orders/'+cur+'/decision', v);
       await post(v === 'accepted' ? 'I accept the price of '+inr(q.total)+'.' : 'I would like to discuss the price of '+inr(q.total)+'.');
       lastSig = ''; load();
-    }catch(e){$('cerr').textContent = 'Could not save. Try again.'}
+    }catch(e){$('cerr').textContent = e.status === 403 && e.message ? e.message : 'Could not save. Try again.'}
   }
+  $('savePhone').onclick = async function(){
+    var v = $('gatePhone').value; $('gateErr').textContent = '';
+    if(!D.phone(v)){$('gateErr').textContent = 'Please enter a valid mobile number.'; return}
+    try{await D.api('PUT', '/api/orders/'+cur+'/phone', {phone:v}); lastSig = ''; load()}catch(e){$('gateErr').textContent = e.message || 'Could not save. Try again.'}
+  };
   $('send').onclick = async function(){
     if(busy) return;
-    var text = $('msg').value.trim(), f = $('mfile').files[0];
+    var text = $('msg').value.trim(), f = $('mfile').files[0], isPdf = D.isPdf(f);
     if(!text && !f) return;
+    if(f && !isPdf && !/^image\//.test(f.type)){$('cerr').textContent = 'Please attach a photo or a PDF.'; return}
+    if(isPdf && f.size > D.MAX_PDF){$('cerr').textContent = 'That PDF is larger than 8 MB.'; return}
     busy = true; $('send').disabled = true; $('cerr').textContent = '';
     try{
       var key = null;
-      if(f){key = 'm'+D.id(6); await D.put('images/'+cur+'/'+key, {d: await D.shrink(f, 1000)})}
+      if(isPdf){
+        await D.api('PUT', '/api/orders/'+cur+'/pdf', {name:f.name, d:await D.readDataUrl(f)});
+        text = (text ? text + '\n' : '') + '📎 PDF attached: ' + f.name;
+      }else if(f){key = 'm'+D.id(6); await D.put('images/'+cur+'/'+key, {d: await D.shrink(f, 1000)})}
       await post(text, key); $('msg').value = ''; $('mfile').value = ''; lastSig = ''; await load();
-    }catch(e){$('cerr').textContent = 'Message not sent. Try again.'}
+    }catch(e){$('cerr').textContent = [403, 413, 429].indexOf(e.status) > -1 && e.message ? e.message : 'Message not sent. Try again.'}
     busy = false; $('send').disabled = false;
   };
   $('msg').addEventListener('keydown', function(e){if(e.key === 'Enter' && (e.ctrlKey || e.metaKey)) $('send').click()});
@@ -302,7 +392,7 @@ dialog{border:0;padding:8px;background:transparent;max-width:92vw}dialog::backdr
   setInterval(function(){if(cur && !document.hidden) load()}, 3000);
 
   var q = new URLSearchParams(location.search).get('r');
-  update(); showMine();
+  prefill(); update(); showMine();
   if(q) openChat(q);
 })();
 </script>

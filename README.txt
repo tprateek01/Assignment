@@ -54,10 +54,33 @@ a minute. A paid plan or another host (Railway, Fly.io, a VPS) removes this.
 
 HOW IT WORKS
 ------------
-Customers send a request with photos and chat with you on the site. You send a
-final price per page. When the customer accepts it, a "Continue on WhatsApp" button
-appears (it never shows before that). Use "Prices" in the admin panel to change the
-starting prices and rush charges customers see.
+Customers send a request with their name, MOBILE NUMBER (required), subject, pages and
+deadline. They can add photos of the instructions and/or UPLOAD A PDF they want written
+(max 8 MB, up to 3 PDFs per request; they can also attach one later from the chat).
+You see the mobile number in the admin panel with Call and WhatsApp buttons, and you
+download the customer's PDF from the request.
+
+You chat with the customer and send a final price. In the "Final price" box:
+  - Price per page and an optional extra/discount.
+  - "Include rush charge" tick box + rush %. It is ticked automatically with a suggested %
+    when the customer's deadline is close (the % comes from "Prices"). Untick it to waive
+    the rush charge: the customer then sees "Rush charge: Waived" in your offer.
+  - The server calculates the total (pages x price + rush + extra).
+When the customer accepts, a "Continue on WhatsApp" button appears (never before that).
+
+LIVE PROGRESS: in "Work progress" set how many pages are done (+/- buttons or "All done"),
+add an optional note, and press "Update progress". The customer sees a progress bar and
+"X of Y pages done" in their chat within a few seconds. The request status switches to
+"In progress" automatically.
+
+FILES: only the customer can add files (photos and PDFs). The admin panel has no attach
+button, and the server also refuses any file upload from the admin.
+
+Use "Prices" in the admin panel to change the starting prices and rush percentages.
+The search box in the admin list finds requests by name, mobile number or subject.
+
+OLDER REQUESTS: requests made before the mobile number became required are asked for
+their number the next time the customer opens the chat. They cannot message until then.
 
 SECURITY NOTES
 --------------
@@ -65,6 +88,10 @@ SECURITY NOTES
 - Customers can only open their own chat through a long private ID stored in their browser.
 - Customer messages cannot pretend to be you. The server decides who wrote each message.
 - Requests are rate limited per IP. Photos are shrunk in the browser and must be JPEG.
-- Photos are stored inside MongoDB. Delete old requests in the admin panel to save space
-  (the free Atlas plan has 512 MB).
+- Photos and PDFs are stored inside MongoDB. Delete old requests in the admin panel (this also
+  removes their PDFs) to save space. The free Atlas plan has 512 MB, so a few 8 MB PDFs add up.
+- PDFs are checked on the server (must really be a PDF, max 8 MB) and are always downloaded as
+  files, never opened inside the site. Like chats, they are reachable only with the long private
+  request ID.
+- Mobile numbers are visible only to you (admin) and to the customer who entered them.
 - Change ADMIN_PASSWORD and SESSION_SECRET in your host settings to log everyone out.
