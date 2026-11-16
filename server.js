@@ -72,7 +72,7 @@ let db;
 const col = n => db.collection(n);
 const getOrder = id => ID.test(id) ? col('orders').findOne({ _id: id }) : null;
 const chatObj = ms => { const c = {}; ms.forEach(m => c[m._id.toHexString()] = { who: m.who, text: m.text, img: m.img, t: m.t }); return c; };
-const view = (o, chat) => ({ info: o.info, quote: o.quote || null, decision: o.decision || null, status: o.status || null, chat });
+const view = (o, chat) => ({ info: o.info, quote: o.quote || null, decision: o.decision || null, status: o.status || null, progress: o.progress || null, pdfs: o.pdfs || [], chat });
 
 app.get('/api/config', (q, s) => s.json({ whatsapp: E.WHATSAPP || '918595938353' }));
 
@@ -181,6 +181,13 @@ app.put('/api/orders/:id/quote', admin, wrap(async (q, s) => {
   if (!(p > 0 && p < 100000) || Math.abs(x) > 1e6) return s.status(400).json({ error: 'Bad price' });
   const quote = { ppp: p, extra: x, pages: o.info.pages, total: o.info.pages * p + x, t: Date.now() };
   await col('orders').updateOne({ _id: o._id }, { $set: { quote } }); s.json(quote);
+}));
+app.put('/api/orders/:id/progress', admin, wrap(async (q, s) => {
+  const o = await getOrder(q.params.id), b = q.body || {}, done = Math.round(+b.done);
+  if (!o) return s.status(404).json({ error: 'No such request' });
+  if (!(done >= 0 && done <= o.info.pages)) return s.status(400).json({ error: 'Enter a number from 0 to ' + o.info.pages + '.' });
+  const progress = { done, note: str(b.note, 200), t: Date.now() };
+  await col('orders').updateOne({ _id: o._id }, { $set: { progress } }); s.json(progress);
 }));
 app.put('/api/orders/:id/status', admin, wrap(async (q, s) => {
   const o = await getOrder(q.params.id), v = (q.body || {}).v;
