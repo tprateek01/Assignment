@@ -1,12 +1,12 @@
-ASSIGNMENT DESK – NODE.JS + MONGODB VERSION
+SCRIBBLE – NODE.JS + MONGODB VERSION
 ===========================================
 
 WHAT THIS IS
 ------------
 A small server (Node.js) that stores everything in MongoDB and serves both pages:
   Customer site : https://your-site/
-  Admin panel   : https://your-site/admin-console-assignment-desk
-Rename public/admin-console-assignment-desk.html to something only you know
+  Admin panel   : https://your-site/admin-console-scribble
+Rename public/admin-console-scribble.html to something only you know
 (example: admin-console-yourname.html), then the URL becomes /admin-console-yourname.
 
 FOLDER
@@ -15,7 +15,7 @@ server.js            the server and API (security rules live here)
 package.json         dependencies (express, mongodb)
 .env.example         the settings you must provide
 public/index.html    customer website
-public/admin-console-assignment-desk.html   your admin panel
+public/admin-console-scribble.html   your admin panel
 public/desk.js       shared browser code
 
 STEP 1 – FREE MONGODB (Atlas)
@@ -25,7 +25,7 @@ STEP 1 – FREE MONGODB (Atlas)
 3. Network Access > Add IP Address > "Allow access from anywhere" (0.0.0.0/0),
    because free hosts change IPs.
 4. Connect > Drivers > copy the connection string. Replace <password> with your password and
-   add a database name before the "?":  ...mongodb.net/assignmentdesk?retryWrites=...
+   add a database name before the "?":  ...mongodb.net/scribble?retryWrites=...
    This whole string is your MONGODB_URI.
 
 STEP 2 – RUN ON YOUR COMPUTER (optional test)

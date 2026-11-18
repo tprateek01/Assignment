@@ -38,11 +38,11 @@ async function sendOtpMail(to, code) {
     method: 'POST',
     headers: { 'api-key': E.BREVO_API_KEY, 'content-type': 'application/json', accept: 'application/json' },
     body: JSON.stringify({
-      sender: { name: E.BREVO_SENDER_NAME || 'Assignment Desk', email: E.BREVO_SENDER_EMAIL },
+      sender: { name: E.BREVO_SENDER_NAME || 'Scribble', email: E.BREVO_SENDER_EMAIL },
       to: [{ email: to }],
-      subject: 'Your Assignment Desk login code: ' + code,
+      subject: 'Your Scribble login code: ' + code,
       textContent: 'Your login code is ' + code + '. It is valid for 10 minutes. If you did not ask for it, ignore this email.',
-      htmlContent: '<div style="font-family:Arial,sans-serif;max-width:420px"><p>Your Assignment Desk login code:</p>' +
+      htmlContent: '<div style="font-family:Arial,sans-serif;max-width:420px"><p>Your Scribble login code:</p>' +
         '<p style="font-size:32px;font-weight:700;letter-spacing:6px;margin:12px 0">' + code + '</p>' +
         '<p style="color:#555">Valid for 10 minutes. If you did not ask for it, you can ignore this email.</p></div>'
     })
@@ -207,5 +207,5 @@ app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'], d
 MongoClient.connect(E.MONGODB_URI).then(async c => {
   db = c.db();
   await col('messages').createIndex({ oid: 1, _id: 1 }); await col('images').createIndex({ oid: 1 }); await col('orders').createIndex({ 'info.created': -1 }); await col('orders').createIndex({ 'info.email': 1 }); await col('otps').createIndex({ exp: 1 }, { expireAfterSeconds: 0 });
-  app.listen(PORT, () => console.log('Assignment Desk running on port ' + PORT));
+  app.listen(PORT, () => console.log('Scribble running on port ' + PORT));
 }).catch(e => { console.error('Could not connect to MongoDB:', e.message); process.exit(1); });

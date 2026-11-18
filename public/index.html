@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#eef2fb" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0b1226" media="(prefers-color-scheme: dark)">
-<title>Assignment Desk – Request an assignment and agree the price</title>
+<title>Scribble – Writing, assignments and drawings. Request and agree the price</title>
+<meta name="description" content="Handwritten and typed writing for assignments, notes, records, reports and more, plus diagrams and engineering drawings. Send a request and agree the price in chat.">
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&family=Caveat:wght@600&display=swap" rel="stylesheet">
 <style>
 :root{--paper:#fbfcff;--page:#eef2fb;--ink:#14214f;--muted:#55618a;--rule:#cfdcf2;--margin:#e5484d;--hi:#ffe45e;--hi-ink:#14214f;--card:#fff;--field:#f3f6fd;--wa:#18a957;--wa-ink:#fff;--me:#e3ecff;--adm:#fff6c9;
@@ -138,26 +139,48 @@ input[type=date]{min-width:0;max-width:100%}
   summary{padding:4px 0}
   footer{padding:32px 0 56px}
 }
+.seg3{grid-template-columns:1fr 1fr 1fr}
+@media (max-width:640px){.seg3{grid-template-columns:1fr}}
+.services{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px;margin:0;padding:0;list-style:none}
+.services>li{background:var(--card);border:1px solid var(--rule);border-radius:12px;padding:18px;display:grid;gap:6px;align-content:start}
+.services>li.premium{border:2px solid var(--ink)}
+.services b{font-size:1.1rem}.services span{color:var(--muted);font-size:.95rem}
+.services .tag{display:inline-block;justify-self:start;font-size:.72rem;font-weight:700;padding:2px 10px;border-radius:99px;background:var(--hi);color:var(--hi-ink)}
+.services ul{margin:4px 0 0;list-style:disc;padding-left:18px;color:var(--muted);font-size:.92rem}
+.notice{border:2px solid var(--ink);border-radius:12px;padding:12px 14px;background:var(--hi);color:var(--hi-ink);font-size:.92rem}
+.notice b{display:block;margin-bottom:2px}
 [hidden]{display:none!important}
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.bar i{transition:none}}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <nav>Assignment Desk</nav>
+  <nav>Scribble</nav>
   <header>
     <h1>Send your request. <mark>Agree the price</mark> in chat.</h1>
-    <p class="lead">Share the subject, pages, deadline, your mobile number and photos or a PDF of your instructions. We chat here, settle the final price per page, and only then continue on WhatsApp.</p>
-    <a class="btn" href="#order">Request an assignment</a> <span class="note">No payment to send a request</span>
+    <p class="lead">Assignments, notes, records, reports, letters or any other writing, handwritten or typed. Diagrams and engineering drawings are available too. Share the details, we chat here, settle the final price, and only then continue on WhatsApp.</p>
+    <a class="btn" href="#order">Make a request</a> <a class="btn ghost" href="#services">See services</a> <span class="note">No payment to send a request</span>
   </header>
+
+  <section id="services" aria-labelledby="sv">
+    <h2 id="sv">What we can do for you</h2>
+    <ul class="services">
+      <li><span class="tag">Writing</span><b>Handwritten work</b><span>Neat handwritten pages for any writing need. Priced per page.</span>
+        <ul><li>Assignments and projects</li><li>Notes, records and journals</li><li>Reports, letters and anything else you need written</li></ul></li>
+      <li><span class="tag">Writing</span><b>Typed work</b><span>Clean typed documents delivered as Word or PDF. Priced per page.</span>
+        <ul><li>Assignments, reports and essays</li><li>Formatted to your university or company style</li><li>Any topic, any subject</li></ul></li>
+      <li class="premium"><span class="tag">Specialist</span><b>Diagrams and drawings</b><span>Engineering drawing, technical diagrams, sketches and charts. Priced higher than regular writing, as a custom quote.</span>
+        <ul><li>Please request at least 7 days before the deadline</li><li>Price depends on the number of sheets and complexity</li><li>Share your sheet size, instructions and sample if any</li></ul></li>
+    </ul>
+  </section>
 
   <section aria-labelledby="how">
     <h2 id="how">How it works</h2>
     <ol class="steps">
-      <li><b>Send your request</b><span>Log in with your email code, then fill the form with your mobile number. Add photos, or upload the PDF you want written.</span></li>
-      <li><b>Chat and agree the price</b><span>Talk to me here. I send a final price per page, you accept or negotiate.</span></li>
+      <li><b>Send your request</b><span>Log in with your email code, choose the service and fill the form with your mobile number. Add photos, or upload the PDF you want written.</span></li>
+      <li><b>Chat and agree the price</b><span>Talk to me here. I send a final price, you accept or negotiate.</span></li>
       <li><b>Continue on WhatsApp</b><span>Once you accept the price, a WhatsApp button appears to finish the order.</span></li>
-      <li><b>Watch the progress</b><span>While I write, you see how many pages are done, live, in your chat.</span></li>
+      <li><b>Watch the progress</b><span>While I work, you see how many pages are done, live, in your chat.</span></li>
     </ol>
   </section>
 
@@ -187,9 +210,9 @@ input[type=date]{min-width:0;max-width:100%}
           <label>Your name<input id="name" type="text" autocomplete="name" placeholder="Full name"></label>
           <label>Mobile number<div class="ccrow" style="display:flex;gap:8px"><select id="cc" aria-label="Country code" style="width:auto;max-width:48%;flex:0 0 auto"><option value="91">India +91</option><option value="1">USA/Canada +1</option><option value="44">UK +44</option><option value="971">UAE +971</option><option value="966">Saudi Arabia +966</option><option value="974">Qatar +974</option><option value="968">Oman +968</option><option value="965">Kuwait +965</option><option value="61">Australia +61</option><option value="65">Singapore +65</option><option value="60">Malaysia +60</option><option value="92">Pakistan +92</option><option value="880">Bangladesh +880</option><option value="977">Nepal +977</option><option value="94">Sri Lanka +94</option><option value="49">Germany +49</option><option value="33">France +33</option></select><input id="phone" type="tel" autocomplete="tel-national" inputmode="numeric" maxlength="10" placeholder="10-digit mobile number" aria-label="Mobile number"></div></label>
         </div>
-        <label>Subject<input id="subject" type="text" placeholder="e.g. Economics"></label>
-        <label>Topic and instructions<textarea id="details" placeholder="Topic, word limit, university format, anything your teacher asked for"></textarea></label>
-        <div class="lab">Have a PDF you want written out? Upload it here (optional, max 8 MB)
+        <label>Subject or work type<input id="subject" type="text" maxlength="100" placeholder="e.g. Economics assignment, Lab record, Engineering Drawing"></label>
+        <label>Topic and instructions<textarea id="details" placeholder="What needs to be written or drawn, word limit, format, sheet size, anything you were asked for"></textarea></label>
+        <div class="lab">Have a PDF you want written or drawn out? Upload it here (optional, max 8 MB)
           <input id="pdfFile" type="file" accept="application/pdf,.pdf">
           <div class="files" id="pdfBox"></div>
           <span class="fine" id="pdfNote" style="margin:0"></span>
@@ -198,14 +221,16 @@ input[type=date]{min-width:0;max-width:100%}
           <input id="files" type="file" accept="image/*" multiple>
           <div class="thumbs" id="thumbs"></div>
         </div>
-        <div class="lab">Assignment type
-          <div class="seg">
-            <span><input type="radio" name="type" id="t1" value="Handwritten" checked><label for="t1">Handwritten<small id="r1"></small></label></span>
-            <span><input type="radio" name="type" id="t2" value="Typed (Word/PDF)"><label for="t2">Typed<small id="r2"></small></label></span>
+        <div class="lab">Service
+          <div class="seg seg3">
+            <span><input type="radio" name="type" id="t1" value="Handwritten" checked><label for="t1">Handwritten writing<small id="r1"></small></label></span>
+            <span><input type="radio" name="type" id="t2" value="Typed (Word/PDF)"><label for="t2">Typed writing<small id="r2"></small></label></span>
+            <span><input type="radio" name="type" id="t3" value="Diagrams &amp; Drawings"><label for="t3">Diagrams &amp; drawings<small id="r3"></small></label></span>
           </div>
         </div>
+        <div class="notice" id="dNotice" hidden role="note"><b>Diagrams and drawings: custom quote, 7 days notice</b>Work like engineering drawing is priced higher than regular writing. Please choose a deadline at least 7 days from today. I will send the final price in chat after seeing your instructions.</div>
         <div class="two">
-          <label>Number of pages<div class="stepper"><button type="button" id="minus" aria-label="Fewer pages">−</button><input id="pages" type="number" min="1" max="200" value="5" inputmode="numeric"><button type="button" id="plus" aria-label="More pages">+</button></div></label>
+          <label><span id="pgLabel">Number of pages</span><div class="stepper"><button type="button" id="minus" aria-label="Fewer pages">−</button><input id="pages" type="number" min="1" max="200" value="5" inputmode="numeric"><button type="button" id="plus" aria-label="More pages">+</button></div></label>
           <label>Deadline<input id="deadline" type="date"></label>
         </div>
         <p class="err" id="err" role="alert"></p>
@@ -217,7 +242,7 @@ input[type=date]{min-width:0;max-width:100%}
         <dl id="lines"></dl>
         <div class="total"><span>Estimate</span><b id="total">₹0</b></div>
         <p class="fine" id="rushNote"></p>
-        <p class="fine">This is only a guide. I send the final price per page after reading your instructions.</p>
+        <p class="fine" id="guideNote">This is only a guide. I send the final price per page after reading your instructions.</p>
       </aside>
     </div>
 
@@ -242,13 +267,15 @@ input[type=date]{min-width:0;max-width:100%}
 
   <section aria-labelledby="faq">
     <h2 id="faq">Common questions</h2>
-    <details><summary>How is the price decided?</summary><p>I read your instructions and send a price per page. You can accept it or reply in the chat to negotiate. A close deadline can add a rush charge, which is shown as its own line in my offer so you can see exactly what it is.</p></details>
+    <details><summary>What kind of work can I request?</summary><p>Any writing work: assignments, notes, lab records, reports, letters and more, handwritten or typed. You can also request diagrams and drawings such as engineering drawing.</p></details>
+    <details><summary>Do you do diagrams and engineering drawings?</summary><p>Yes. Choose "Diagrams &amp; drawings" in the request form. This work is priced higher than regular writing because it takes much more time and care, so the price is a custom quote based on your instructions and the number of sheets. Please send the request at least 7 days before your deadline.</p></details>
+    <details><summary>How is the price decided?</summary><p>I read your instructions and send a final price (per page for writing, a custom quote for diagrams and drawings). You can accept it or reply in the chat to negotiate. A close deadline can add a rush charge, which is shown as its own line in my offer so you can see exactly what it is.</p></details>
     <details><summary>Can I upload a PDF to get it written?</summary><p>Yes. Attach your PDF in the request form (up to 8 MB), or add it later from the chat. I will write it out from that file.</p></details>
     <details><summary>Can I see how much is done?</summary><p>Yes. While I work, the number of finished pages is updated live in your chat.</p></details>
     <details><summary>When does WhatsApp come in?</summary><p>After you accept the final price. A WhatsApp button then appears here so we can finish the order and payment.</p></details>
     <details><summary>How do I come back to my chat?</summary><p>Open this website and log in with the same email. We send you a 6-digit code, and all your requests are listed at the top of this section, on any phone or browser.</p></details>
   </section>
-  <footer>Assignment Desk · Replies usually come within a few hours.</footer>
+  <footer>Scribble · Writing, assignments and drawings · Replies usually come within a few hours.</footer>
 </div>
 <dialog id="zoom"><img id="zimg" alt="Enlarged photo"></dialog>
 
@@ -313,10 +340,20 @@ input[type=date]{min-width:0;max-width:100%}
   var today = new Date(); today.setHours(0,0,0,0);
   $('deadline').min = new Date(today - today.getTimezoneOffset()*60000).toISOString().slice(0,10);
   function type(){return document.querySelector('input[name=type]:checked').value}
+  function isDraw(){return type() === 'Diagrams & Drawings'}
+  function isoDay(n){var d = new Date(today.getTime()); d.setDate(d.getDate() + n); return new Date(d - d.getTimezoneOffset()*60000).toISOString().slice(0,10)}
   ['phone','gatePhone'].forEach(function(i){$(i).addEventListener('input', function(){this.value = this.value.replace(/\D/g, '').slice(0, 10)})});
   function pages(){var p = parseInt($('pages').value,10); return isNaN(p) || p < 1 ? 0 : Math.min(p,200)}
   function update(){
     $('r1').textContent = 'about ' + inr(R.H) + ' per page'; $('r2').textContent = 'about ' + inr(R.T) + ' per page';
+    var D3 = isDraw(); $('r3').textContent = 'custom quote, higher price'; $('dNotice').hidden = !D3; $('pgLabel').textContent = D3 ? 'Number of sheets' : 'Number of pages';
+    $('guideNote').textContent = D3 ? 'Diagrams and drawings are quoted individually. I send the final price after reading your instructions.' : 'This is only a guide. I send the final price per page after reading your instructions.';
+    $('deadline').min = isoDay(D3 ? 7 : 0);
+    if(D3){
+      $('lines').innerHTML = '<dt>Service</dt><dd>Diagrams &amp; drawings</dd><dt>Sheets</dt><dd>'+pages()+'</dd><dt>Price</dt><dd>Custom quote</dd><dt>Notice needed</dt><dd>7+ days</dd>';
+      $('total').textContent = 'On quote'; $('rushNote').textContent = 'Priced higher than regular writing. Deadline must be at least 7 days away.';
+      return 0;
+    }
     var rate = type() === 'Handwritten' ? R.H : R.T, p = pages(), sub = p*rate, v = $('deadline').value, pct = 0;
     if(v){var dl = Math.round((new Date(v+'T00:00:00') - today)/86400000); pct = dl <= 1 ? R.r2 : dl <= 5 ? R.r5 : 0}
     var rush = sub*pct;
@@ -327,7 +364,7 @@ input[type=date]{min-width:0;max-width:100%}
   }
   $('plus').onclick = function(){$('pages').value = Math.min(200, (pages()||0)+1); update()};
   $('minus').onclick = function(){$('pages').value = Math.max(1, (pages()||2)-1); update()};
-  ['pages','deadline','t1','t2'].forEach(function(i){$(i).addEventListener('input', update); $(i).addEventListener('change', update)});
+  ['pages','deadline','t1','t2','t3'].forEach(function(i){$(i).addEventListener('input', update); $(i).addEventListener('change', update)});
 
   /* ---- photos and PDF on the form ---- */
   function drawThumbs(){
@@ -366,17 +403,25 @@ input[type=date]{min-width:0;max-width:100%}
     if(!A){$('err').textContent = 'Please log in with your email first.'; layout(); return}
     if(!name){$('err').textContent = 'Please enter your name.'; $('name').focus(); return}
     if(!D.phoneFull($('cc').value, ph)){$('err').textContent = 'Please enter a valid 10-digit mobile number.'; $('phone').focus(); return}
-    if(!subj){$('err').textContent = 'Please enter the subject.'; $('subject').focus(); return}
+    if(!subj){$('err').textContent = 'Please enter the subject or work type.'; $('subject').focus(); return}
+    var drawing = isDraw();
+    if(drawing){
+      var dv = $('deadline').value;
+      if(!dv){$('err').textContent = 'Please choose a deadline. Diagrams and drawings need at least 7 days.'; $('deadline').focus(); return}
+      if(dv < isoDay(7)){$('err').textContent = 'Diagrams and drawings need at least 7 days notice. Please choose a later deadline.'; $('deadline').focus(); return}
+    }
     if(!p){$('err').textContent = 'Please enter at least 1 page.'; return}
     $('err').textContent = ''; $('submit').disabled = true; $('submit').textContent = 'Sending…';
     var id = D.id(12), keys = [], pdfProblem = '';
     try{
       keys = imgs.map(function(_, i){return 'i'+i});
-      await D.put('orders/'+id+'/info', {name:name, phone:D.phoneFull($('cc').value, ph), subject:subj, details:$('details').value.trim(), type:type(), pages:p, deadline:$('deadline').value, est:inr(update()), imgs:keys});
+      var sendSubj = drawing ? '[Diagram/Drawing] ' + subj : subj,
+          sendDet = drawing ? ('SERVICE: Diagrams & drawings (custom quote, higher price, 7+ days notice)' + ($('details').value.trim() ? '\n' + $('details').value.trim() : '')) : $('details').value.trim();
+      await D.put('orders/'+id+'/info', {name:name, phone:D.phoneFull($('cc').value, ph), subject:sendSubj, details:sendDet, type:drawing ? 'Handwritten' : type(), pages:p, deadline:$('deadline').value, est:drawing ? 'Custom quote' : inr(update()), imgs:keys});
       for(var i = 0; i < keys.length; i++){await D.put('images/'+id+'/'+keys[i], {d:imgs[i]})}
       if(pdf){try{await D.api('PUT', '/api/orders/'+id+'/pdf', {name:pdf.name, d:await D.readDataUrl(pdf)})}catch(x){pdfProblem = x.status === 413 || x.status === 429 ? x.message : 'Your PDF could not be uploaded.'}}
       try{localStorage.setItem(CK, JSON.stringify({name:name, cc:$('cc').value, phone:ph}))}catch(x){}
-      var l = mine(); l.unshift({id:id, t:subj+' · '+p+' pages'}); saveMine(l); fetchMine();
+      var l = mine(); l.unshift({id:id, t:sendSubj+' · '+p+(drawing ? ' sheets' : ' pages')}); saveMine(l); fetchMine();
       $('form').reset(); imgs = []; pdf = null; drawThumbs(); drawPdf(); $('pdfNote').textContent = ''; prefill(); update(); openChat(id);
       if(pdfProblem) $('cerr').textContent = pdfProblem + ' Your request was sent. Attach the PDF again below.';
     }catch(er){
@@ -438,7 +483,7 @@ input[type=date]{min-width:0;max-width:100%}
         '<div><b>'+done+' of '+pg+' pages done</b>'+(done >= pg && pg ? ' · All pages are finished' : '')+'</div>'+(pr.note ? '<div class="fine">'+esc(pr.note)+'</div>' : '')+'<div class="fine">Updated '+D.when(pr.t)+'</div>';
     }else{$('progBox').hidden = true; $('progBox').innerHTML = ''}
     var t = $('thread'), atEnd = t.scrollHeight - t.scrollTop - t.clientHeight < 80 || !t.children.length;
-    t.innerHTML = msgs.length ? msgs.map(function(m){var x = m[1]; return '<div class="b '+(x.who==='cust'?'cust':'admin')+'">'+esc(x.text)+(x.img?'<img class="pic" data-oid="'+cur+'" data-k="'+esc(x.img)+'" alt="Photo">':'')+'<small>'+(x.who==='cust'?'You':'Assignment Desk')+' · '+D.when(x.t)+'</small></div>'}).join('') : '<p class="fine">No messages yet. Say hello, or wait for my price offer.</p>';
+    t.innerHTML = msgs.length ? msgs.map(function(m){var x = m[1]; return '<div class="b '+(x.who==='cust'?'cust':'admin')+'">'+esc(x.text)+(x.img?'<img class="pic" data-oid="'+cur+'" data-k="'+esc(x.img)+'" alt="Photo">':'')+'<small>'+(x.who==='cust'?'You':'Scribble')+' · '+D.when(x.t)+'</small></div>'}).join('') : '<p class="fine">No messages yet. Say hello, or wait for my price offer.</p>';
     if(atEnd) t.scrollTop = t.scrollHeight;
     // old requests without a mobile number must add one before chatting or answering a price
     $('phoneGate').hidden = !!i.phone; $('composer').hidden = !i.phone;
