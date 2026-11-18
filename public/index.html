@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<script src="theme.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#eef2fb" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0b1226" media="(prefers-color-scheme: dark)">
@@ -155,7 +156,7 @@ input[type=date]{min-width:0;max-width:100%}
 </head>
 <body>
 <div class="wrap">
-  <nav>Scribble</nav>
+  <nav style="display:flex;justify-content:space-between;align-items:center;gap:12px">Scribble<span data-theme-slot></span></nav>
   <header>
     <h1>Send your request. <mark>Agree the price</mark> in chat.</h1>
     <p class="lead">Assignments, notes, records, reports, letters or any other writing, handwritten or typed. Diagrams and engineering drawings are available too. Share the details, we chat here, settle the final price, and only then continue on WhatsApp.</p>
