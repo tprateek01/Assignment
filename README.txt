@@ -97,6 +97,17 @@ The search box in the admin list finds requests by name, mobile number or subjec
 OLDER REQUESTS: requests made before the mobile number became required are asked for
 their number the next time the customer opens the chat. They cannot message until then.
 
+EXTRA COST AT MARKET PRICE + DIGITAL BILL
+-----------------------------------------
+In the "Final price" box, under "Extra items at market price", press "+ Add extra item" for each
+material that is not plain A4 (copy, register, drawing sheets, special paper...). Write what it is
+for and its actual market cost. The total becomes: pages x price + rush + extra items + other extra.
+The customer sees every item with its reason in your offer, and the offer message in the chat lists it too.
+After you send the offer, "Send bill on WhatsApp" opens WhatsApp to the customer's mobile number with the
+bill written out (extra cost and what it is for) plus a link to the digital bill page (/bill?r=REQUESTID).
+The bill page can be saved or printed as a PDF. You press Send in WhatsApp yourself: fully automatic
+sending needs the paid WhatsApp Business API, which this app does not use.
+
 SECURITY NOTES
 --------------
 - Admin login is checked on the server. All admin actions need your login token.

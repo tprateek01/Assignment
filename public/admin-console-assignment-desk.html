@@ -59,6 +59,7 @@ label.chk{display:flex;align-items:center;gap:8px;font-size:.9rem;color:var(--in
 label.chk input{width:auto;margin:0}
 .lnk{color:var(--ink);font-weight:600;display:inline-flex;align-items:center;min-height:40px;padding:0 14px;border:1px solid var(--rule);border-radius:8px;background:var(--field);text-decoration:none}
 .filerow{display:flex;justify-content:space-between;gap:8px;align-items:center;background:var(--field);border:1px solid var(--rule);border-radius:8px;padding:6px 10px;margin-top:6px;font-size:.9rem;overflow-wrap:anywhere}
+.mrow{display:grid;grid-template-columns:minmax(0,1fr) 120px auto;gap:8px;align-items:end;margin-top:6px}.mrow button{padding:8px 12px}
 .lines{display:grid;grid-template-columns:1fr auto;gap:2px 12px;font-size:.88rem;margin:8px 0 0;color:var(--muted)}.lines dd{margin:0;text-align:right;color:var(--ink);font-weight:600}.lines dt{margin:0}
 @media (prefers-reduced-motion:reduce){.bar i{transition:none}}
 #login{position:fixed;inset:0;display:grid;place-items:center;background:var(--page);z-index:50;padding:20px}
@@ -67,6 +68,7 @@ body.locked header,body.locked .app{display:none}body:not(.locked) #login{displa
 dialog{border:0;padding:8px;background:transparent;max-width:92vw}dialog::backdrop{background:rgba(5,10,30,.7)}dialog img{max-width:90vw;max-height:85vh;border-radius:10px}
 [hidden]{display:none!important}
 @media (max-width:820px){
+  .mrow{grid-template-columns:minmax(0,1fr) 100px auto}
   .app{grid-template-columns:minmax(0,1fr)}.detail{display:none}.app.show .detail{display:grid}.app.show .list{display:none}
   .back{display:block;position:sticky;top:0;z-index:5;width:100%;text-align:left}
   header{padding:10px max(14px,env(safe-area-inset-right,0px)) 10px max(14px,env(safe-area-inset-left,0px));gap:8px}
@@ -175,6 +177,29 @@ dialog{border:0;padding:8px;background:transparent;max-width:92vw}dialog::backdr
   function dayGap(i){if(!i.deadline) return null; var c = new Date(i.created); c.setHours(0,0,0,0); return Math.round((new Date(i.deadline + 'T00:00:00') - c) / 864e5)}
   function rushSuggest(i){var g = dayGap(i); return g == null ? 0 : g <= 1 ? (+rates.rush2 || 0) : g <= 5 ? (+rates.rush5 || 0) : 0}
 
+  /* ---------- market-price extra items ---------- */
+  function matRow(m){m = m || {}; return '<div class="mrow"><label>What is it for (e.g. Register, Drawing sheets)<input class="mName" maxlength="60" value="'+esc(m.name || '')+'"></label><label>Market cost (₹)<input class="mAmt" type="number" min="0" step="any" value="'+(m.amount || '')+'"></label><button type="button" class="mDel danger" aria-label="Remove this item">✕</button></div>'}
+  function readMats(){
+    return Array.prototype.map.call(document.querySelectorAll('#mats .mrow'), function(r){return {name:r.querySelector('.mName').value.trim(), amount:+r.querySelector('.mAmt').value || 0}}).filter(function(m){return m.name || m.amount});
+  }
+  function billNo(id){return 'SCR-' + String(id).slice(0, 8).toUpperCase()}
+  // plain-text bill that goes to the customer on WhatsApp (with the link to the digital bill page)
+  function billText(o){
+    var q = o.quote, i = o.info, L = [];
+    L.push('*Scribble – Bill*'); L.push('Bill no: ' + billNo(cur)); L.push('Name: ' + i.name); L.push('Work: ' + i.subject + ' (' + i.pages + ' pages)'); L.push('');
+    L.push(i.pages + ' pages × ' + inr(q.ppp) + ' = ' + inr(q.ppp * i.pages));
+    if(q.rushOn && q.rush) L.push('Rush charge (' + q.rushPct + '%): ' + inr(q.rush));
+    if(q.materials && q.materials.length){
+      L.push(''); L.push('*Extra cost (actual market price, no profit added):*');
+      q.materials.forEach(function(m){L.push('• ' + m.name + ': ' + inr(m.amount))});
+    }
+    if(q.extra) L.push((q.extra > 0 ? 'Other extra: ' : 'Discount: −') + inr(Math.abs(q.extra)));
+    L.push(''); L.push('*Total: ' + inr(q.total) + '*');
+    if(q.materials && q.materials.length) L.push('Note: the extra cost is charged for ' + q.materials.map(function(m){return m.name}).join(', ') + ' (market price).');
+    L.push(''); L.push('Digital bill: ' + location.origin + '/bill?r=' + cur);
+    return L.join('\n');
+  }
+
   /* ---------- detail ---------- */
   function detail(){
     var o = S[cur], d = $('detail'); if(!o){d.innerHTML = '<p class="empty">Select a request.</p>'; return}
@@ -189,12 +214,14 @@ dialog{border:0;padding:8px;background:transparent;max-width:92vw}dialog::backdr
       ((o.pdfs||[]).length ? '<h2 style="margin:12px 0 0;font-size:.9rem">Customer’s PDF to be written</h2>'+o.pdfs.map(function(f){return '<div class="filerow"><span>📄 '+esc(f.name)+' · '+D.size(f.size)+' · '+D.when(f.t)+'</span><a class="lnk" href="/api/orders/'+cur+'/pdf/'+esc(f.k)+'" download>Download</a></div>'}).join('') : '')+
       ((i.imgs||[]).length ? '<div class="row">'+i.imgs.map(function(k){return '<img class="pic" data-oid="'+cur+'" data-k="'+esc(k)+'" alt="Photo">'}).join('')+'</div>' : '')+'</section>'+
     '<section class="card"><h2>Final price</h2><div class="grid"><label>Price per page (₹)<input id="ppp" type="number" min="0" value="'+ppp+'"></label>'+
-      '<label>Extra / discount (₹, use − for discount)<input id="extra" type="number" value="'+(q.extra||0)+'"></label><div><div class="total" id="tot"></div></div></div>'+
+      '<label>Other extra / discount (₹, use − for discount)<input id="extra" type="number" value="'+(q.extra||0)+'"></label><div><div class="total" id="tot"></div></div></div>'+
       '<div class="row"><label class="chk"><input type="checkbox" id="rushOn"'+(rOn?' checked':'')+'> Include rush charge</label>'+
         '<label style="width:110px">Rush (%)<input id="rushPct" type="number" min="0" max="300" value="'+rPct+'"></label></div>'+
       '<div class="fine" id="rushHint">'+(g == null ? 'The customer gave no deadline.' : 'Deadline is '+g+(g === 1 ? ' day' : ' days')+' after the request. ' + (sug ? 'Suggested rush: '+sug+'%.' : 'No rush charge normally applies.'))+' Untick to waive it; the customer sees it as waived.</div>'+
+      '<div style="margin-top:14px"><b style="font-size:.9rem">Extra items at market price</b><div class="fine" style="margin:2px 0 0">Copy, register, drawing sheets, special paper or any other material. Enter the actual market cost and what it is for. It is added to the final price, and the customer sees the reason on the offer and on the bill.</div><div id="mats">'+(q.materials || []).map(matRow).join('')+'</div><div class="row"><button type="button" id="addMat">+ Add extra item</button></div></div>'+
       '<dl class="lines" id="calc"></dl>'+
       '<div class="row"><button class="pri" id="offer">Send price offer</button><span class="fine" id="offState"></span></div>'+
+      (o.quote ? '<div class="row"><button class="pri" id="billWa" style="background:var(--wa);border-color:var(--wa);color:var(--wa-ink)">Send bill on WhatsApp</button><a class="lnk" href="/bill?r='+cur+'" target="_blank" rel="noopener">View bill</a></div><p class="fine">The bill uses the last offer you sent ('+inr(total(o))+'). Send the offer again first if you changed anything above.</p>' : '')+
       '<div class="row"><label style="min-width:170px">Status<select id="st"><option value="">Automatic</option>'+MANUAL.map(function(s){return '<option'+(o.status===s?' selected':'')+'>'+s+'</option>'}).join('')+'</select></label></div></section>'+
     '<section class="card"><h2>Work progress (the customer sees this live)</h2>'+
       '<div class="bar" id="pbar"><i style="width:0"></i></div><div class="fine" id="pText" style="margin:0"></div>'+
@@ -210,12 +237,13 @@ dialog{border:0;padding:8px;background:transparent;max-width:92vw}dialog::backdr
   }
   function calc(){
     var p = +$('ppp').value || 0, x = +$('extra').value || 0, pg = +S[cur].info.pages || 0, on = $('rushOn').checked, pct = +$('rushPct').value || 0;
-    var sub = pg*p, rush = on ? Math.round(sub*pct/100) : 0;
+    var sub = pg*p, rush = on ? Math.round(sub*pct/100) : 0, mats = readMats(), mt = mats.reduce(function(a, m){return a + m.amount}, 0);
     $('rushPct').disabled = !on;
     $('calc').innerHTML = '<dt>'+pg+' pages × '+inr(p)+'</dt><dd>'+inr(sub)+'</dd>'+
       (on ? '<dt>Rush charge ('+pct+'%)</dt><dd>+ '+inr(rush)+'</dd>' : (pct > 0 ? '<dt>Rush charge</dt><dd>Excluded</dd>' : ''))+
-      (x ? '<dt>'+(x>0?'Extra':'Discount')+'</dt><dd>'+(x>0?'+ ':'− ')+inr(Math.abs(x))+'</dd>' : '');
-    $('tot').textContent = inr(sub + rush + x);
+      mats.map(function(m){return '<dt>Extra: '+esc(m.name || 'item')+' (market price)</dt><dd>+ '+inr(m.amount)+'</dd>'}).join('')+
+      (x ? '<dt>'+(x>0?'Other extra':'Discount')+'</dt><dd>'+(x>0?'+ ':'− ')+inr(Math.abs(x))+'</dd>' : '');
+    $('tot').textContent = inr(sub + rush + mt + x);
   }
   function drawProg(o){
     var pg = +o.info.pages || 0, pr = o.progress, dn = pr ? Math.min(pr.done, pg) : 0;
@@ -235,7 +263,7 @@ dialog{border:0;padding:8px;background:transparent;max-width:92vw}dialog::backdr
   }
   function chatPost(text){return D.post('orders/'+cur+'/chat', {text:text})}
   function setDone(v){var m = +S[cur].info.pages || 0; $('pgDone').value = Math.max(0, Math.min(m, Math.round(+v || 0)))}
-  $('detail').addEventListener('input', function(e){if(['ppp','extra','rushPct'].indexOf(e.target.id) > -1) calc()});
+  $('detail').addEventListener('input', function(e){if(['ppp','extra','rushPct'].indexOf(e.target.id) > -1 || (e.target.classList && (e.target.classList.contains('mName') || e.target.classList.contains('mAmt')))) calc()});
   $('detail').addEventListener('change', async function(e){
     if(e.target.id === 'rushOn') calc();
     if(e.target.id === 'st'){try{await ensure(); await D.put('orders/'+cur+'/status', e.target.value || null); await poll()}catch(x){$('cerr').textContent = 'Could not save status.'}}
@@ -243,6 +271,14 @@ dialog{border:0;padding:8px;background:transparent;max-width:92vw}dialog::backdr
   $('detail').addEventListener('click', async function(e){
     var id = e.target.id, o = S[cur]; if(!o || busy) return;
     if(id === 'back') $('app').classList.remove('show');
+    if(id === 'addMat'){$('mats').insertAdjacentHTML('beforeend', matRow()); var ins = $('mats').querySelectorAll('.mName'); ins[ins.length - 1].focus(); calc()}
+    if(e.target.classList && e.target.classList.contains('mDel')){e.target.closest('.mrow').remove(); calc()}
+    if(id === 'billWa'){
+      if(!o.quote) return;
+      var phn = digits(o.info.phone);
+      if(!phn){$('cerr').textContent = 'This customer has no mobile number yet.'; return}
+      window.open('https://wa.me/' + phn + '?text=' + encodeURIComponent(billText(o)), '_blank', 'noopener');
+    }
     if(id === 'pgMinus') setDone((+$('pgDone').value || 0) - 1);
     if(id === 'pgPlus') setDone((+$('pgDone').value || 0) + 1);
     if(id === 'pgAll') setDone(o.info.pages);
@@ -261,10 +297,14 @@ dialog{border:0;padding:8px;background:transparent;max-width:92vw}dialog::backdr
       try{
         await ensure();
         // the server works out the rush amount and total, and clears the customer's earlier answer
-        var qt = await D.put('orders/'+cur+'/quote', {ppp:p, extra:x, rushOn:$('rushOn').checked, rushPct:+$('rushPct').value || 0});
+        var mats = readMats();
+        for(var mi = 0; mi < mats.length; mi++){if(!mats[mi].name || !(mats[mi].amount > 0)){$('cerr').textContent = 'Each extra item needs a name and a cost above 0.'; busy = false; e.target.disabled = false; return}}
+        var qt = await D.put('orders/'+cur+'/quote', {ppp:p, extra:x, rushOn:$('rushOn').checked, rushPct:+$('rushPct').value || 0, materials:mats});
         var txt = 'Final price offer: '+inr(qt.ppp)+' per page × '+qt.pages+' pages'+
           (qt.rushOn && qt.rush ? ' + '+inr(qt.rush)+' rush charge ('+qt.rushPct+'%)' : qt.rushPct > 0 ? ' (rush charge waived)' : '')+
-          (qt.extra ? (qt.extra>0?' + '+inr(qt.extra)+' extra':' − '+inr(-qt.extra)+' discount') : '')+' = '+inr(qt.total)+'. You can accept it above, or tell me what price works for you.';
+          (qt.materials && qt.materials.length ? ' + extra cost at market price (' + qt.materials.map(function(m){return m.name + ' ' + inr(m.amount)}).join(', ') + ')' : '')+
+          (qt.extra ? (qt.extra>0?' + '+inr(qt.extra)+' other extra':' − '+inr(-qt.extra)+' discount') : '')+' = '+inr(qt.total)+'.'+
+          (qt.materials && qt.materials.length ? ' The extra cost is only for the material listed, charged at the actual market price with no profit added.' : '')+' You can accept it above, or tell me what price works for you.';
         await chatPost(txt);
         await poll(); live(true);
       }catch(er){$('cerr').textContent = er.status === 400 && er.message ? er.message : 'Could not send the offer.'}

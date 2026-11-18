@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Scribble – Bill</title>
+<style>
+:root{--page:#eef2fb;--card:#fff;--ink:#14214f;--muted:#5b6790;--rule:#d3dcf0;--hi:#ffe45e;--ok:#18a957;--warn:#b26a00;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root{--page:#0b1226;--card:#18224a;--ink:#e9eeff;--muted:#a3afd4;--rule:#2a3862;--ok:#2bc46f;--warn:#ffb54d}}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--page);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;line-height:1.5;padding:16px}
+.sheet{max-width:640px;margin:0 auto;background:var(--card);border:1px solid var(--rule);border-radius:14px;padding:24px;overflow-wrap:anywhere}
+.top{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start;border-bottom:2px dashed var(--rule);padding-bottom:14px}
+h1{margin:0;font-size:1.6rem;font-weight:800;letter-spacing:-.02em}
+h1 mark{background:var(--hi);color:#14214f;padding:0 .15em;border-radius:4px}
+.meta{font-size:.88rem;color:var(--muted);text-align:right}.meta b{color:var(--ink)}
+.badge{display:inline-block;font-size:.78rem;font-weight:700;padding:2px 10px;border-radius:99px;border:1px solid currentColor;margin-top:6px}
+.badge.ok{color:var(--ok)}.badge.wait{color:var(--warn)}
+.to{margin:16px 0 4px;font-size:.95rem}.to small{display:block;color:var(--muted)}
+table{width:100%;border-collapse:collapse;margin-top:12px;font-size:.95rem}
+th{font-size:.75rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);text-align:left;padding:6px 0;border-bottom:1px solid var(--rule)}
+th:last-child,td:last-child{text-align:right;white-space:nowrap}
+td{padding:9px 0;border-bottom:1px solid var(--rule);vertical-align:top}
+td small{display:block;color:var(--muted);font-size:.78rem}
+tr.sec td{border:0;padding:14px 0 2px;font-weight:700;font-size:.82rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.total{display:flex;justify-content:space-between;align-items:baseline;margin-top:16px;padding-top:12px;border-top:2px solid var(--ink)}
+.total span{font-weight:700}.total b{font-size:2rem;letter-spacing:-.02em}
+.note{margin-top:14px;padding:10px 12px;border-left:4px solid var(--hi);background:rgba(255,228,94,.18);font-size:.9rem;border-radius:4px}
+.fine{font-size:.78rem;color:var(--muted);margin:14px 0 0}
+.actions{max-width:640px;margin:14px auto 0;display:flex;gap:10px;flex-wrap:wrap}
+button,a.b{font:inherit;font-weight:600;border:1px solid var(--rule);background:var(--card);color:var(--ink);padding:12px 18px;border-radius:10px;cursor:pointer;text-decoration:none;min-height:44px;display:inline-flex;align-items:center}
+button.pri{background:var(--ink);color:var(--card);border-color:var(--ink)}
+.msg{max-width:640px;margin:40px auto;text-align:center;color:var(--muted)}
+@media print{
+  body{background:#fff;color:#000;padding:0}
+  .sheet{border:0;border-radius:0;max-width:none;padding:0;background:#fff;color:#000}
+  .actions{display:none}
+  :root{--ink:#000;--muted:#444;--rule:#bbb;--card:#fff}
+}
+</style>
+</head>
+<body>
+<div class="msg" id="msg">Loading your bill…</div>
+<div class="sheet" id="sheet" hidden></div>
+<div class="actions" id="actions" hidden>
+  <button class="pri" id="print">Download / Print bill (PDF)</button>
+</div>
+<script>
+(function(){
+  var $ = function(i){return document.getElementById(i)};
+  function esc(s){return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+  function inr(n){n = Math.round((+n || 0) * 100) / 100; return '₹' + n.toLocaleString('en-IN', {minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2})}
+  function dt(t){return new Date(t).toLocaleDateString('en-GB', {day:'numeric', month:'long', year:'numeric'})}
+  var id = new URLSearchParams(location.search).get('r') || '';
+  if(!/^[a-z0-9]{24}$/.test(id)){$('msg').textContent = 'This bill link is not valid.'; return}
+  fetch('/api/orders/' + id).then(function(r){return r.json()}).then(function(d){
+    if(!d || !d.quote){$('msg').textContent = d ? 'The final price has not been sent yet, so there is no bill.' : 'This bill could not be found.'; return}
+    var q = d.quote, i = d.info, mats = q.materials || [], sub = q.ppp * q.pages;
+    var paid = d.status === 'Paid', agreed = d.decision === 'accepted' || ['In progress', 'Delivered', 'Paid'].indexOf(d.status) > -1;
+    var rows = '<tr><td>' + esc(i.type) + ' – ' + esc(i.subject) + '<small>' + q.pages + ' pages × ' + inr(q.ppp) + ' per page</small></td><td>' + inr(sub) + '</td></tr>';
+    if(q.rushOn && q.rush) rows += '<tr><td>Rush charge<small>' + q.rushPct + '% for the close deadline</small></td><td>' + inr(q.rush) + '</td></tr>';
+    else if(!q.rushOn && q.rushPct > 0) rows += '<tr><td>Rush charge</td><td>Waived</td></tr>';
+    if(mats.length){
+      rows += '<tr class="sec"><td colspan="2">Extra cost (actual market price, no profit added)</td></tr>';
+      mats.forEach(function(m){rows += '<tr><td>' + esc(m.name) + '<small>Extra cost for this item</small></td><td>+ ' + inr(m.amount) + '</td></tr>'});
+    }
+    if(q.extra) rows += '<tr><td>' + (q.extra > 0 ? 'Other extra' : 'Discount') + '</td><td>' + (q.extra > 0 ? '+ ' : '− ') + inr(Math.abs(q.extra)) + '</td></tr>';
+    var note = mats.length ? '<div class="note"><b>Why is there an extra cost?</b><br>The extra cost of ' + inr(q.matTotal != null ? q.matTotal : mats.reduce(function(a, m){return a + m.amount}, 0)) + ' is for: ' + mats.map(function(m){return esc(m.name) + ' (' + inr(m.amount) + ')'}).join(', ') + '. It is charged at the actual market price of the material used. No profit is added on it.</div>' : '';
+    $('sheet').innerHTML =
+      '<div class="top"><div><h1><mark>Scribble</mark> Bill</h1><span class="badge ' + (paid ? 'ok' : agreed ? 'ok' : 'wait') + '">' + (paid ? 'PAID' : agreed ? 'PRICE AGREED' : 'OFFER – waiting for your acceptance') + '</span></div>' +
+      '<div class="meta">Bill no: <b>SCR-' + esc(id.slice(0, 8).toUpperCase()) + '</b><br>Date: <b>' + dt(q.t) + '</b></div></div>' +
+      '<div class="to"><b>Billed to: ' + esc(i.name) + '</b><small>Deadline: ' + (i.deadline ? dt(i.deadline + 'T00:00:00') : 'Not decided') + '</small></div>' +
+      '<table><thead><tr><th>Description</th><th>Amount</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+      '<div class="total"><span>Total to pay</span><b>' + inr(q.total) + '</b></div>' + note +
+      '<p class="fine">This is a digital bill and needs no signature. Questions about any line? Reply to the WhatsApp message or write in your chat on the website.</p>';
+    $('msg').hidden = true; $('sheet').hidden = false; $('actions').hidden = false;
+    document.title = 'Scribble Bill SCR-' + id.slice(0, 8).toUpperCase();
+  }).catch(function(){$('msg').textContent = 'Could not load the bill. Check your internet and try again.'});
+  $('print').onclick = function(){window.print()};
+})();
+</script>
+</body>
+</html>

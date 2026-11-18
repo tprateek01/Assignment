@@ -468,7 +468,7 @@ input[type=date]{min-width:0;max-width:100%}
   }
   function wa(d){
     var q = d.quote, i = d.info;
-    return 'https://wa.me/'+D.cfg.whatsapp+'?text='+encodeURIComponent('Hello! The price is agreed for my '+i.subject+' assignment ('+i.pages+' pages): '+inr(q.total)+' ('+inr(q.ppp)+' per page). My name is '+i.name+'. Request ID: '+cur.slice(0,8));
+    return 'https://wa.me/'+D.cfg.whatsapp+'?text='+encodeURIComponent('Hello! The price is agreed for my '+i.subject+' assignment ('+i.pages+' pages): '+inr(q.total)+' ('+inr(q.ppp)+' per page'+((q.materials || []).length ? ' + extra cost at market price: '+q.materials.map(function(m){return m.name+' '+inr(m.amount)}).join(', ') : '')+'). My name is '+i.name+'. Request ID: '+cur.slice(0,8));
   }
   function custStatus(d){
     if(d.status) return d.status;
@@ -480,8 +480,11 @@ input[type=date]{min-width:0;max-width:100%}
     var h = '<dl class="mini"><dt>'+inr(q.ppp)+' per page × '+q.pages+' pages</dt><dd>'+inr(q.ppp*q.pages)+'</dd>';
     if(q.rushOn && q.rush) h += '<dt>Rush charge ('+q.rushPct+'%)</dt><dd>+ '+inr(q.rush)+'</dd>';
     else if(!q.rushOn && q.rushPct > 0) h += '<dt>Rush charge</dt><dd>Waived</dd>';
-    if(q.extra) h += '<dt>'+(q.extra > 0 ? 'Extra' : 'Discount')+'</dt><dd>'+(q.extra > 0 ? '+ ' : '− ')+inr(Math.abs(q.extra))+'</dd>';
-    return h + '</dl>';
+    (q.materials || []).forEach(function(m){h += '<dt>Extra cost: '+esc(m.name)+' <small>(market price)</small></dt><dd>+ '+inr(m.amount)+'</dd>'});
+    if(q.extra) h += '<dt>'+(q.extra > 0 ? 'Other extra' : 'Discount')+'</dt><dd>'+(q.extra > 0 ? '+ ' : '− ')+inr(Math.abs(q.extra))+'</dd>';
+    h += '</dl>';
+    if((q.materials || []).length) h += '<p class="fine" style="margin:8px 0 0">The extra cost is for '+q.materials.map(function(m){return esc(m.name)}).join(', ')+'. It is charged at the actual market price, with no profit added.</p>';
+    return h;
   }
   function render(d){
     var msgs = Object.keys(d.chat || {}).sort().map(function(k){return [k, d.chat[k]]}), i = d.info || {};
@@ -510,7 +513,7 @@ input[type=date]{min-width:0;max-width:100%}
     else if(!q) o.innerHTML = '<p class="fine">I am reading your request and will send my final price per page here soon.</p>';
     else{
       var det = '<h4>Final price offer: '+inr(q.total)+'</h4>'+breakdown(q);
-      if(d.decision === 'accepted') o.innerHTML = '<div class="offer ok">'+det+'<p style="margin:8px 0 0"><b>Price agreed.</b> Continue on WhatsApp to finish your order.</p><div class="row"><a class="btn wa" href="'+wa(d)+'" target="_blank" rel="noopener">Continue on WhatsApp</a></div></div>';
+      if(d.decision === 'accepted') o.innerHTML = '<div class="offer ok">'+det+'<p style="margin:8px 0 0"><b>Price agreed.</b> Continue on WhatsApp to finish your order.</p><div class="row"><a class="btn wa" href="'+wa(d)+'" target="_blank" rel="noopener">Continue on WhatsApp</a><a class="btn ghost" href="/bill?r='+cur+'" target="_blank" rel="noopener">View bill</a></div></div>';
       else o.innerHTML = '<div class="offer">'+det+(d.decision==='declined' ? '<p class="fine">You declined this price. Tell me what works for you in the chat.</p>' : '<p class="fine">Accept it to continue on WhatsApp, or reply below to negotiate.</p>')+'<div class="row"><button class="btn" id="acc">Accept this price</button>'+(d.decision==='declined'?'':'<button class="btn ghost" id="dec">Not at this price</button>')+'</div></div>';
       var a = $('acc'); if(a) a.onclick = function(){decide('accepted', q)};
       var c = $('dec'); if(c) c.onclick = function(){decide('declined', q)};

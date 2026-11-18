@@ -6,7 +6,8 @@ for (const k of ['MONGODB_URI', 'ADMIN_EMAIL', 'ADMIN_PASSWORD', 'SESSION_SECRET
 
 const app = express();
 app.set('trust proxy', 1);
-app.use(express.json({ limit: '1mb' }));
+const jsonSmall = express.json({ limit: '1mb' });
+app.use((q, s, n) => (q.method === 'PUT' && /^\/api\/orders\/[a-z0-9]{24}\/pdf$/.test(q.path)) ? n() : jsonSmall(q, s, n));
 app.use((q, s, n) => { s.set({ 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'DENY', 'Referrer-Policy': 'same-origin' }); n(); });
 
 /* ---- admin sessions (signed token, 30 days) ---- */
@@ -153,6 +154,31 @@ app.put('/api/orders/:id/decision', limit('dec', 60, 36e5), wrap(async (q, s) =>
   await col('orders').updateOne({ _id: o._id }, v === null ? { $unset: { decision: 1 } } : { $set: { decision: v } }); s.json(v);
 }));
 
+
+/* ---- PDFs the customer wants written (max 8 MB, up to 3 per request, customer only) ---- */
+const MAX_PDF = 8 * 1048576, parsePdf = express.json({ limit: '12mb' });
+app.put('/api/orders/:id/pdf', limit('pdf', 20, 36e5), parsePdf, wrap(async (q, s) => {
+  if (isAdmin(q)) return s.status(403).json({ error: 'Only the customer can attach files' });
+  const o = await getOrder(q.params.id), b = q.body || {};
+  if (!o) return s.status(404).json({ error: 'No such request' });
+  const m = typeof b.d === 'string' ? /^data:application\/pdf;base64,([A-Za-z0-9+/=]+)$/.exec(b.d) : null;
+  const buf = m ? Buffer.from(m[1], 'base64') : null;
+  if (!buf || buf.length > MAX_PDF) return s.status(413).json({ error: 'That PDF is larger than 8 MB.' });
+  if (buf.slice(0, 5).toString('latin1') !== '%PDF-') return s.status(400).json({ error: 'That file is not a real PDF.' });
+  if ((o.pdfs || []).length >= 3) return s.status(429).json({ error: 'You can attach up to 3 PDFs per request.' });
+  const k = crypto.randomBytes(6).toString('hex'), name = str(b.name, 100).replace(/[\r\n"\\/]/g, '_') || 'file.pdf';
+  await col('pdfs').insertOne({ _id: o._id + '/' + k, oid: o._id, data: buf });
+  const f = { k, name, size: buf.length, t: Date.now() };
+  await col('orders').updateOne({ _id: o._id }, { $push: { pdfs: f } }); s.json(f);
+}));
+app.get('/api/orders/:id/pdf/:k', wrap(async (q, s) => {
+  const d = ID.test(q.params.id) && /^[a-f0-9]{12}$/.test(q.params.k) ? await col('pdfs').findOne({ _id: q.params.id + '/' + q.params.k }) : null;
+  const o = d ? await getOrder(q.params.id) : null, f = o && (o.pdfs || []).find(x => x.k === q.params.k);
+  if (!d || !f) return s.status(404).json({ error: 'Not found' });
+  s.set({ 'Content-Type': 'application/pdf', 'Content-Disposition': 'attachment; filename="' + f.name.replace(/[^\w.\- ]/g, '_') + '"' });
+  s.send(Buffer.isBuffer(d.data) ? d.data : Buffer.from(d.data.read(0, d.data.length())));  // MongoDB returns a Binary object
+}));
+
 /* ---- images (stored as small JPEG data URLs) ---- */
 app.put('/api/images/:id/:k', limit('img', 80, 36e5), wrap(async (q, s) => {
   const o = await getOrder(q.params.id), { k } = q.params, d = (q.body || {}).d;
@@ -179,8 +205,22 @@ app.put('/api/orders/:id/quote', admin, wrap(async (q, s) => {
   const o = await getOrder(q.params.id), b = q.body || {}, p = +b.ppp, x = +b.extra || 0;
   if (!o) return s.status(404).json({ error: 'No such request' });
   if (!(p > 0 && p < 100000) || Math.abs(x) > 1e6) return s.status(400).json({ error: 'Bad price' });
-  const quote = { ppp: p, extra: x, pages: o.info.pages, total: o.info.pages * p + x, t: Date.now() };
-  await col('orders').updateOne({ _id: o._id }, { $set: { quote } }); s.json(quote);
+  // market-price items (copy, register, drawing sheets, special paper...): each has a name (what it is for) and its actual cost
+  const rawM = Array.isArray(b.materials) ? b.materials : [];
+  if (rawM.length > 12) return s.status(400).json({ error: 'Maximum 12 extra items' });
+  const materials = [];
+  for (const m of rawM) {
+    const name = str(m && m.name, 60), amount = Math.round((+(m && m.amount) || 0) * 100) / 100;
+    if (!name && !amount) continue;
+    if (!name || !(amount > 0 && amount <= 1e6)) return s.status(400).json({ error: 'Each extra item needs a name and an amount above 0' });
+    materials.push({ name, amount });
+  }
+  const matTotal = Math.round(materials.reduce((a, m) => a + m.amount, 0) * 100) / 100;
+  const rushOn = b.rushOn === true, rushPct = Math.max(0, Math.min(300, Math.round(+b.rushPct || 0)));
+  const sub = o.info.pages * p, rush = rushOn ? Math.round(sub * rushPct / 100) : 0;
+  const quote = { ppp: p, extra: x, pages: o.info.pages, rushOn, rushPct, rush, materials, matTotal, total: Math.round((sub + rush + matTotal + x) * 100) / 100, t: Date.now() };
+  // a new offer clears the customer's earlier answer, so they must accept the new total
+  await col('orders').updateOne({ _id: o._id }, { $set: { quote }, $unset: { decision: 1 } }); s.json(quote);
 }));
 app.put('/api/orders/:id/progress', admin, wrap(async (q, s) => {
   const o = await getOrder(q.params.id), b = q.body || {}, done = Math.round(+b.done);
@@ -197,7 +237,7 @@ app.put('/api/orders/:id/status', admin, wrap(async (q, s) => {
 }));
 app.delete('/api/orders/:id', admin, wrap(async (q, s) => {
   if (!ID.test(q.params.id)) return s.status(400).json({});
-  await col('orders').deleteOne({ _id: q.params.id }); await col('messages').deleteMany({ oid: q.params.id }); await col('images').deleteMany({ oid: q.params.id }); s.json({});
+  await col('orders').deleteOne({ _id: q.params.id }); await col('messages').deleteMany({ oid: q.params.id }); await col('images').deleteMany({ oid: q.params.id }); await col('pdfs').deleteMany({ oid: q.params.id }); s.json({});
 }));
 app.delete('/api/images/:id', admin, wrap(async (q, s) => { await col('images').deleteMany({ oid: q.params.id }); s.json({}); }));
 
@@ -206,6 +246,6 @@ app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'], d
 
 MongoClient.connect(E.MONGODB_URI).then(async c => {
   db = c.db();
-  await col('messages').createIndex({ oid: 1, _id: 1 }); await col('images').createIndex({ oid: 1 }); await col('orders').createIndex({ 'info.created': -1 }); await col('orders').createIndex({ 'info.email': 1 }); await col('otps').createIndex({ exp: 1 }, { expireAfterSeconds: 0 });
+  await col('messages').createIndex({ oid: 1, _id: 1 }); await col('images').createIndex({ oid: 1 }); await col('pdfs').createIndex({ oid: 1 }); await col('orders').createIndex({ 'info.created': -1 }); await col('orders').createIndex({ 'info.email': 1 }); await col('otps').createIndex({ exp: 1 }, { expireAfterSeconds: 0 });
   app.listen(PORT, () => console.log('Scribble running on port ' + PORT));
 }).catch(e => { console.error('Could not connect to MongoDB:', e.message); process.exit(1); });
