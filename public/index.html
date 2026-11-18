@@ -172,6 +172,7 @@ input[type=date]{min-width:0;max-width:100%}
       <li class="premium"><span class="tag">Specialist</span><b>Diagrams and drawings</b><span>Engineering drawing, technical diagrams, sketches and charts. Priced higher than regular writing, as a custom quote.</span>
         <ul><li>Please request at least 7 days before the deadline</li><li>Price depends on the number of sheets and complexity</li><li>Share your sheet size, instructions and sample if any</li></ul></li>
     </ul>
+    <div class="notice policy" style="margin-top:16px"><b>Materials policy</b>Plain A4 blank sheets are included in the price. For anything other than plain A4 sheets (a copy, register, file, drawing sheets, special paper or any other material), the actual market price is charged extra for whatever is used. No extra profit is added. Or you can hand the material over beforehand at the pickup location, and then no material cost applies.</div>
   </section>
 
   <section aria-labelledby="how">
@@ -229,6 +230,14 @@ input[type=date]{min-width:0;max-width:100%}
           </div>
         </div>
         <div class="notice" id="dNotice" hidden role="note"><b>Diagrams and drawings: custom quote, 7 days notice</b>Work like engineering drawing is priced higher than regular writing. Please choose a deadline at least 7 days from today. I will send the final price in chat after seeing your instructions.</div>
+        <label>Material to be used
+          <select id="material">
+            <option value="a4">Plain A4 blank sheets (included in price)</option>
+            <option value="pay">Copy, register or other material (I will pay the market price)</option>
+            <option value="hand">Copy, register or other material (I will hand it over at the pickup location beforehand)</option>
+          </select>
+          <span class="fine" id="matNote" style="margin:0">Anything other than plain A4 sheets is charged at the actual market price, or you provide it beforehand at the pickup location.</span>
+        </label>
         <div class="two">
           <label><span id="pgLabel">Number of pages</span><div class="stepper"><button type="button" id="minus" aria-label="Fewer pages">−</button><input id="pages" type="number" min="1" max="200" value="5" inputmode="numeric"><button type="button" id="plus" aria-label="More pages">+</button></div></label>
           <label>Deadline<input id="deadline" type="date"></label>
@@ -242,6 +251,7 @@ input[type=date]{min-width:0;max-width:100%}
         <dl id="lines"></dl>
         <div class="total"><span>Estimate</span><b id="total">₹0</b></div>
         <p class="fine" id="rushNote"></p>
+        <p class="fine" id="matAside">Material cost is not included in this estimate when you choose a copy, register or other non-A4 material. It is charged at the market price, or you can hand the material over beforehand.</p>
         <p class="fine" id="guideNote">This is only a guide. I send the final price per page after reading your instructions.</p>
       </aside>
     </div>
@@ -269,6 +279,7 @@ input[type=date]{min-width:0;max-width:100%}
     <h2 id="faq">Common questions</h2>
     <details><summary>What kind of work can I request?</summary><p>Any writing work: assignments, notes, lab records, reports, letters and more, handwritten or typed. You can also request diagrams and drawings such as engineering drawing.</p></details>
     <details><summary>Do you do diagrams and engineering drawings?</summary><p>Yes. Choose "Diagrams &amp; drawings" in the request form. This work is priced higher than regular writing because it takes much more time and care, so the price is a custom quote based on your instructions and the number of sheets. Please send the request at least 7 days before your deadline.</p></details>
+    <details><summary>What about copies, registers and other material?</summary><p>Plain A4 blank sheets are included. For anything else (a copy, register, file, drawing sheets, special paper or any other material), you pay the actual market price for whatever is used, with no extra margin. If you prefer, hand the material over beforehand at the pickup location instead, and no material cost applies.</p></details>
     <details><summary>How is the price decided?</summary><p>I read your instructions and send a final price (per page for writing, a custom quote for diagrams and drawings). You can accept it or reply in the chat to negotiate. A close deadline can add a rush charge, which is shown as its own line in my offer so you can see exactly what it is.</p></details>
     <details><summary>Can I upload a PDF to get it written?</summary><p>Yes. Attach your PDF in the request form (up to 8 MB), or add it later from the chat. I will write it out from that file.</p></details>
     <details><summary>Can I see how much is done?</summary><p>Yes. While I work, the number of finished pages is updated live in your chat.</p></details>
@@ -348,7 +359,7 @@ input[type=date]{min-width:0;max-width:100%}
     $('r1').textContent = 'about ' + inr(R.H) + ' per page'; $('r2').textContent = 'about ' + inr(R.T) + ' per page';
     var D3 = isDraw(); $('r3').textContent = 'custom quote, higher price'; $('dNotice').hidden = !D3; $('pgLabel').textContent = D3 ? 'Number of sheets' : 'Number of pages';
     $('guideNote').textContent = D3 ? 'Diagrams and drawings are quoted individually. I send the final price after reading your instructions.' : 'This is only a guide. I send the final price per page after reading your instructions.';
-    $('deadline').min = isoDay(D3 ? 7 : 0);
+    $('deadline').min = isoDay(D3 ? 7 : 0); $('matAside').hidden = $('material').value === 'a4';
     if(D3){
       $('lines').innerHTML = '<dt>Service</dt><dd>Diagrams &amp; drawings</dd><dt>Sheets</dt><dd>'+pages()+'</dd><dt>Price</dt><dd>Custom quote</dd><dt>Notice needed</dt><dd>7+ days</dd>';
       $('total').textContent = 'On quote'; $('rushNote').textContent = 'Priced higher than regular writing. Deadline must be at least 7 days away.';
@@ -364,6 +375,7 @@ input[type=date]{min-width:0;max-width:100%}
   }
   $('plus').onclick = function(){$('pages').value = Math.min(200, (pages()||0)+1); update()};
   $('minus').onclick = function(){$('pages').value = Math.max(1, (pages()||2)-1); update()};
+  $('material').addEventListener('change', update);
   ['pages','deadline','t1','t2','t3'].forEach(function(i){$(i).addEventListener('input', update); $(i).addEventListener('change', update)});
 
   /* ---- photos and PDF on the form ---- */
@@ -416,7 +428,13 @@ input[type=date]{min-width:0;max-width:100%}
     try{
       keys = imgs.map(function(_, i){return 'i'+i});
       var sendSubj = drawing ? '[Diagram/Drawing] ' + subj : subj,
-          sendDet = drawing ? ('SERVICE: Diagrams & drawings (custom quote, higher price, 7+ days notice)' + ($('details').value.trim() ? '\n' + $('details').value.trim() : '')) : $('details').value.trim();
+          matV = $('material').value,
+          tags = [];
+      if(drawing) tags.push('SERVICE: Diagrams & drawings (custom quote, higher price, 7+ days notice)');
+      if(matV === 'pay') tags.push('MATERIAL: Copy/register/other (non-A4). Customer will PAY the market price.');
+      else if(matV === 'hand') tags.push('MATERIAL: Copy/register/other (non-A4). Customer will HAND OVER at the pickup location BEFORE work starts.');
+      else tags.push('MATERIAL: Plain A4 sheets (included)');
+      var sendDet = tags.concat($('details').value.trim() ? [$('details').value.trim()] : []).join('\n');
       await D.put('orders/'+id+'/info', {name:name, phone:D.phoneFull($('cc').value, ph), subject:sendSubj, details:sendDet, type:drawing ? 'Handwritten' : type(), pages:p, deadline:$('deadline').value, est:drawing ? 'Custom quote' : inr(update()), imgs:keys});
       for(var i = 0; i < keys.length; i++){await D.put('images/'+id+'/'+keys[i], {d:imgs[i]})}
       if(pdf){try{await D.api('PUT', '/api/orders/'+id+'/pdf', {name:pdf.name, d:await D.readDataUrl(pdf)})}catch(x){pdfProblem = x.status === 413 || x.status === 429 ? x.message : 'Your PDF could not be uploaded.'}}
