@@ -2,13 +2,15 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<script src="theme.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
 <title>Scribble – Bill</title>
 <style>
 :root{--page:#eef2fb;--card:#fff;--ink:#14214f;--muted:#5b6790;--rule:#d3dcf0;--hi:#ffe45e;--ok:#18a957;--warn:#b26a00;
 box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-@media (prefers-color-scheme:dark){:root{--page:#0b1226;--card:#18224a;--ink:#e9eeff;--muted:#a3afd4;--rule:#2a3862;--ok:#2bc46f;--warn:#ffb54d}}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--page:#0b1226;--card:#18224a;--ink:#e9eeff;--muted:#a3afd4;--rule:#2a3862;--ok:#2bc46f;--warn:#ffb54d}}
+:root[data-theme="dark"]{--page:#0b1226;--card:#18224a;--ink:#e9eeff;--muted:#a3afd4;--rule:#2a3862;--ok:#2bc46f;--warn:#ffb54d}
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--page);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;line-height:1.5;padding:16px}
@@ -38,7 +40,8 @@ button.pri{background:var(--ink);color:var(--card);border-color:var(--ink)}
   body{background:#fff;color:#000;padding:0}
   .sheet{border:0;border-radius:0;max-width:none;padding:0;background:#fff;color:#000}
   .actions{display:none}
-  :root{--ink:#000;--muted:#444;--rule:#bbb;--card:#fff}
+  :root,:root[data-theme]{--ink:#000;--muted:#444;--rule:#bbb;--card:#fff;--ok:#0a7a3a;--warn:#7a4a00}
+  .themeBtn{display:none}
 }
 </style>
 </head>
@@ -47,6 +50,7 @@ button.pri{background:var(--ink);color:var(--card);border-color:var(--ink)}
 <div class="sheet" id="sheet" hidden></div>
 <div class="actions" id="actions" hidden>
   <button class="pri" id="print">Download / Print bill (PDF)</button>
+  <span data-theme-slot></span>
 </div>
 <script>
 (function(){
