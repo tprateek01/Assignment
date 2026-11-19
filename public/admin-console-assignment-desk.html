@@ -60,6 +60,10 @@ label.chk{display:flex;align-items:center;gap:8px;font-size:.9rem;color:var(--in
 label.chk input{width:auto;margin:0}
 .lnk{color:var(--ink);font-weight:600;display:inline-flex;align-items:center;min-height:40px;padding:0 14px;border:1px solid var(--rule);border-radius:8px;background:var(--field);text-decoration:none}
 .filerow{display:flex;justify-content:space-between;gap:8px;align-items:center;background:var(--field);border:1px solid var(--rule);border-radius:8px;padding:6px 10px;margin-top:6px;font-size:.9rem;overflow-wrap:anywhere}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px;margin-top:10px}
+.pitem{position:relative;display:grid;gap:4px;align-content:start;font-size:.78rem;color:var(--muted)}
+.pitem .pic{width:100%;height:110px;margin:0}
+.pitem .x{position:absolute;top:4px;right:4px;width:28px;height:28px;min-height:0;padding:0;border-radius:50%;line-height:1;background:var(--bad);border-color:var(--bad);color:#fff}
 .mrow{display:grid;grid-template-columns:minmax(0,1fr) 120px auto;gap:8px;align-items:end;margin-top:6px}.mrow button{padding:8px 12px}
 .lines{display:grid;grid-template-columns:1fr auto;gap:2px 12px;font-size:.88rem;margin:8px 0 0;color:var(--muted)}.lines dd{margin:0;text-align:right;color:var(--ink);font-weight:600}.lines dt{margin:0}
 @media (prefers-reduced-motion:reduce){.bar i{transition:none}}
@@ -229,12 +233,65 @@ dialog{border:0;padding:8px;background:transparent;max-width:92vw}dialog::backdr
       '<div class="row" style="align-items:end"><button id="pgMinus" aria-label="One page less">−</button><label style="width:110px">Pages done<input id="pgDone" type="number" min="0" max="'+esc(i.pages)+'" value="'+pdone+'"></label><button id="pgPlus" aria-label="One page more">+</button><button id="pgAll">All '+esc(i.pages)+' done</button></div>'+
       '<label style="margin-top:8px">Note for the customer (optional)<input id="pgNote" maxlength="200" placeholder="e.g. Pages 1 to 4 done, 5 to 10 will be ready tomorrow" value="'+esc(o.progress ? o.progress.note : '')+'"></label>'+
       '<div class="row"><button class="pri" id="pgSave">Update progress</button><span class="fine" id="pgMsg"></span></div></section>'+
+    '<section class="card"><h2>Completed work photos (the customer sees these)</h2>'+
+      '<p class="fine" style="margin:0 0 8px">Upload clear photos of the finished pages as you go. This shows the customer the work is really being done. Each photo is stamped with the request ID and the date and time. You can select many photos at once.</p>'+
+      '<div class="row"><input type="file" id="pfFiles" accept="image/*" multiple aria-label="Choose photos of completed work" style="flex:1 1 220px;width:auto"></div>'+
+      '<label style="margin-top:8px">Note for these photos (optional)<input id="pfNote" maxlength="140" placeholder="e.g. Pages 1 to 4 completed"></label>'+
+      '<div class="row"><button class="pri" id="pfUp">Upload photos</button><span class="fine" id="pfMsg"></span></div>'+
+      '<div class="pgrid" id="pfGrid"></div></section>'+
     '<section class="card"><h2>Chat</h2><div class="thread" id="thread"></div>'+
       '<textarea id="msg" rows="2" placeholder="Reply to the customer"></textarea>'+
       '<div class="row"><button class="pri" id="send">Send</button><span class="err" id="cerr"></span></div>'+
-      '<p class="fine">Only the customer can attach photos or PDFs.</p></section>'+
+      '<p class="fine">Chat attachments are for the customer only. Use the completed work section above to share photos of finished pages.</p></section>'+
     '<section class="card"><button class="danger" id="del">Delete this request</button></section>';
     calc(); live(true); D.fillImages(d);
+  }
+  /* ---------- completed work photos ---------- */
+  function drawProof(o){
+    var g = $('pfGrid'); if(!g) return;
+    var l = o.proof || [];
+    g.innerHTML = l.length ? l.map(function(f){return '<div class="pitem"><img class="pic" data-oid="'+cur+'" data-k="'+esc(f.k)+'" alt="Completed work">'+
+      '<button class="x" data-del="'+esc(f.k)+'" aria-label="Delete this photo" title="Delete">×</button><span>'+D.when(f.t)+(f.note ? ' · '+esc(f.note) : '')+'</span></div>'}).join('') : '<p class="fine" style="grid-column:1/-1">No work photos uploaded yet. The customer sees none until you upload.</p>';
+    D.fillImages(g);
+  }
+  // shrink a photo and add a thin stamp strip under it: request ID + date and time
+  function stampPhoto(file, label){
+    return new Promise(function(ok, no){
+      var im = new Image(), u = URL.createObjectURL(file);
+      im.onload = function(){
+        var s = Math.min(1, 1400 / Math.max(im.width, im.height)), w = Math.round(im.width * s), h = Math.round(im.height * s), bar = Math.max(26, Math.round(w * .035));
+        var c = document.createElement('canvas'); c.width = w; c.height = h + bar;
+        var x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, w, h + bar); x.drawImage(im, 0, 0, w, h);
+        x.fillStyle = '#14214f'; x.fillRect(0, h, w, bar); x.fillStyle = '#ffe45e'; x.font = '600 ' + Math.round(bar * .55) + 'px Arial,sans-serif'; x.textBaseline = 'middle';
+        x.fillText(label, Math.round(bar * .4), h + bar / 2);
+        URL.revokeObjectURL(u);
+        var q = .8, d = c.toDataURL('image/jpeg', q);
+        while(d.length > 380000 && q > .3){q -= .1; d = c.toDataURL('image/jpeg', q)}
+        d.length > 390000 ? no(new Error('Photo too large')) : ok(d);
+      };
+      im.onerror = function(){URL.revokeObjectURL(u); no(new Error('Not an image'))};
+      im.src = u;
+    });
+  }
+  async function uploadProof(o, btn){
+    var inp = $('pfFiles'), files = Array.prototype.slice.call(inp.files || [], 0, 12), msg = $('pfMsg');
+    if(!files.length){msg.textContent = 'Choose one or more photos first.'; return}
+    var id = cur, note = $('pfNote').value.trim(), okN = 0, bad = '';
+    busy = true; btn.disabled = true;
+    for(var i = 0; i < files.length; i++){
+      msg.textContent = 'Uploading ' + (i + 1) + ' of ' + files.length + '…';
+      try{
+        await ensure();
+        var stamp = 'Scribble · Request ' + id.slice(0, 8) + ' · ' + new Date().toLocaleString('en-GB', {day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'});
+        var d = await stampPhoto(files[i], stamp);
+        var f = await D.api('PUT', '/api/orders/' + id + '/proof', {d:d, note:note});
+        okN++; if(S[id]) S[id].proof = (S[id].proof || []).concat([f]);
+      }catch(er){bad = er.status === 429 && er.message ? er.message : 'One photo could not be uploaded.'; if(er.status === 429) break}
+    }
+    inp.value = ''; if(okN) $('pfNote').value = '';
+    msg.textContent = (okN ? okN + ' photo' + (okN > 1 ? 's' : '') + ' uploaded. The customer can see them now. ' : '') + bad;
+    busy = false; btn.disabled = false;
+    if(cur === id){await poll(); live(true)}
   }
   function calc(){
     var p = +$('ppp').value || 0, x = +$('extra').value || 0, pg = +S[cur].info.pages || 0, on = $('rushOn').checked, pct = +$('rushPct').value || 0;
@@ -253,14 +310,14 @@ dialog{border:0;padding:8px;background:transparent;max-width:92vw}dialog::backdr
   }
   function live(force){
     var o = S[cur]; if(!o || !$('thread')) return;
-    var n = Object.keys(o.chat||{}).length, s = n + '|' + JSON.stringify(o.quote||'') + '|' + (o.decision||'') + '|' + JSON.stringify(o.progress||'');
+    var n = Object.keys(o.chat||{}).length, s = n + '|' + JSON.stringify(o.quote||'') + '|' + (o.decision||'') + '|' + JSON.stringify(o.progress||'') + '|' + (o.proof||[]).map(function(f){return f.k}).join(',');
     if(!force && s === sig) return; sig = s;
     var t = $('thread'), end = t.scrollHeight - t.scrollTop - t.clientHeight < 80 || !t.children.length;
     t.innerHTML = Object.keys(o.chat||{}).sort().map(function(k){var m = o.chat[k];
       return '<div class="b '+(m.who==='admin'?'admin':'cust')+'">'+esc(m.text)+(m.img?'<img class="pic" data-oid="'+cur+'" data-k="'+esc(m.img)+'" alt="Photo">':'')+'<small>'+(m.who==='admin'?'You':esc(o.info.name))+' · '+D.when(m.t)+'</small></div>'}).join('') || '<p class="fine">No messages yet.</p>';
     if(end) t.scrollTop = t.scrollHeight;
     $('offState').textContent = o.decision === 'accepted' ? 'Customer accepted ' + inr(total(o)) : o.decision === 'declined' ? 'Customer declined ' + inr(total(o)) : o.quote ? 'Offer sent: ' + inr(total(o)) + ', waiting for the customer' : 'No offer sent yet';
-    drawProg(o); D.fillImages(t);
+    drawProg(o); drawProof(o); D.fillImages(t);
   }
   function chatPost(text){return D.post('orders/'+cur+'/chat', {text:text})}
   function setDone(v){var m = +S[cur].info.pages || 0; $('pgDone').value = Math.max(0, Math.min(m, Math.round(+v || 0)))}
@@ -279,6 +336,12 @@ dialog{border:0;padding:8px;background:transparent;max-width:92vw}dialog::backdr
       var phn = digits(o.info.phone);
       if(!phn){$('cerr').textContent = 'This customer has no mobile number yet.'; return}
       window.open('https://wa.me/' + phn + '?text=' + encodeURIComponent(billText(o)), '_blank', 'noopener');
+    }
+    if(id === 'pfUp') await uploadProof(o, e.target);
+    var delK = e.target.getAttribute && e.target.getAttribute('data-del');
+    if(delK && confirm('Delete this work photo? The customer will no longer see it.')){
+      try{await ensure(); await D.api('DELETE', '/api/orders/'+cur+'/proof/'+delK); o.proof = (o.proof || []).filter(function(f){return f.k !== delK}); await poll(); live(true)}
+      catch(er){$('pfMsg').textContent = 'Could not delete the photo.'}
     }
     if(id === 'pgMinus') setDone((+$('pgDone').value || 0) - 1);
     if(id === 'pgPlus') setDone((+$('pgDone').value || 0) + 1);

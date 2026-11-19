@@ -73,7 +73,7 @@ let db;
 const col = n => db.collection(n);
 const getOrder = id => ID.test(id) ? col('orders').findOne({ _id: id }) : null;
 const chatObj = ms => { const c = {}; ms.forEach(m => c[m._id.toHexString()] = { who: m.who, text: m.text, img: m.img, t: m.t }); return c; };
-const view = (o, chat) => ({ info: o.info, quote: o.quote || null, decision: o.decision || null, status: o.status || null, progress: o.progress || null, pdfs: o.pdfs || [], chat });
+const view = (o, chat) => ({ info: o.info, quote: o.quote || null, decision: o.decision || null, status: o.status || null, progress: o.progress || null, pdfs: o.pdfs || [], proof: o.proof || [], chat });
 
 app.get('/api/config', (q, s) => s.json({ whatsapp: E.WHATSAPP || '918595938353' }));
 
@@ -228,6 +228,23 @@ app.put('/api/orders/:id/progress', admin, wrap(async (q, s) => {
   if (!(done >= 0 && done <= o.info.pages)) return s.status(400).json({ error: 'Enter a number from 0 to ' + o.info.pages + '.' });
   const progress = { done, note: str(b.note, 200), t: Date.now() };
   await col('orders').updateOne({ _id: o._id }, { $set: { progress } }); s.json(progress);
+}));
+/* ---- completed-work photos: only the admin uploads them, the customer only views them ---- */
+const MAX_PROOF = 30;
+app.put('/api/orders/:id/proof', admin, wrap(async (q, s) => {
+  const o = await getOrder(q.params.id), b = q.body || {}, d = b.d;
+  if (!o) return s.status(404).json({ error: 'No such request' });
+  if (typeof d !== 'string' || d.length > 400000 || !/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(d)) return s.status(400).json({ error: 'Bad image' });
+  if ((o.proof || []).length >= MAX_PROOF) return s.status(429).json({ error: 'Maximum ' + MAX_PROOF + ' work photos per request. Delete some first.' });
+  const k = 'w' + crypto.randomBytes(5).toString('hex'), f = { k, note: str(b.note, 140), t: Date.now() };
+  await col('images').insertOne({ _id: o._id + '/' + k, oid: o._id, d });
+  await col('orders').updateOne({ _id: o._id }, { $push: { proof: f } }); s.json(f);
+}));
+app.delete('/api/orders/:id/proof/:k', admin, wrap(async (q, s) => {
+  const o = await getOrder(q.params.id), k = q.params.k;
+  if (!o || !/^w[a-f0-9]{10}$/.test(k)) return s.status(404).json({ error: 'Not found' });
+  await col('images').deleteOne({ _id: o._id + '/' + k });
+  await col('orders').updateOne({ _id: o._id }, { $pull: { proof: { k } } }); s.json({});
 }));
 app.put('/api/orders/:id/status', admin, wrap(async (q, s) => {
   const o = await getOrder(q.params.id), v = (q.body || {}).v;

@@ -94,6 +94,9 @@ dialog{border:0;padding:8px;background:transparent;max-width:92vw}dialog::backdr
 .prog{background:var(--field);border:1px solid var(--rule);border-radius:10px;padding:12px;margin-bottom:12px}
 .bar{height:12px;border-radius:99px;background:var(--rule);overflow:hidden;margin:8px 0}
 .bar i{display:block;height:100%;background:var(--wa);border-radius:99px;transition:width .6s}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px;margin-top:8px}
+.pgrid figure{margin:0;display:grid;gap:3px;align-content:start;font-size:.74rem;color:var(--muted)}
+.pgrid .pic{width:100%;height:104px}
 .mini{margin:8px 0 0;display:grid;grid-template-columns:1fr auto;gap:4px 12px;font-size:.9rem}
 .mini dt{color:var(--muted)}.mini dd{margin:0;text-align:right;font-weight:600}
 .files{display:flex;flex-direction:column;gap:6px;margin-top:8px}
@@ -184,7 +187,7 @@ input[type=date]{min-width:0;max-width:100%}
       <li><b>Send your request</b><span>Log in with your email code, choose the service and fill the form with your mobile number. Add photos, or upload the PDF you want written.</span></li>
       <li><b>Chat and agree the price</b><span>Talk to me here. I send a final price, you accept or negotiate.</span></li>
       <li><b>Continue on WhatsApp</b><span>Once you accept the price, a WhatsApp button appears to finish the order.</span></li>
-      <li><b>Watch the progress</b><span>While I work, you see how many pages are done, live, in your chat.</span></li>
+      <li><b>Watch the progress</b><span>While I work, you see how many pages are done, plus photos of the finished work, live in your chat.</span></li>
       <li><b>Collect your work</b><span>Pick up your finished work from Knowledge Park 2 Metro Station, Gate No. 2, Greater Noida. We confirm the time on WhatsApp.</span></li>
     </ol>
   </section>
@@ -264,6 +267,7 @@ input[type=date]{min-width:0;max-width:100%}
       <div class="chathead"><h3>Chat about your request</h3><button class="btn ghost" id="newReq" style="padding:8px 14px">New request</button></div>
       <div class="info" id="infoBox"></div>
       <div class="prog" id="progBox" hidden aria-live="polite"></div>
+      <div class="prog" id="proofBox" hidden></div>
       <div class="thread" id="thread" aria-live="polite"></div>
       <div id="offer"></div>
       <div class="gate" id="phoneGate" hidden>
@@ -286,7 +290,7 @@ input[type=date]{min-width:0;max-width:100%}
     <details><summary>What about copies, registers and other material?</summary><p>Plain A4 blank sheets are included. For anything else (a copy, register, file, drawing sheets, special paper or any other material), you pay the actual market price for whatever is used, with no extra margin. If you prefer, hand the material over beforehand at the pickup location instead, and no material cost applies.</p></details>
     <details><summary>How is the price decided?</summary><p>I read your instructions and send a final price (per page for writing, a custom quote for diagrams and drawings). You can accept it or reply in the chat to negotiate. A close deadline can add a rush charge, which is shown as its own line in my offer so you can see exactly what it is.</p></details>
     <details><summary>Can I upload a PDF to get it written?</summary><p>Yes. Attach your PDF in the request form (up to 8 MB), or add it later from the chat. I will write it out from that file.</p></details>
-    <details><summary>Can I see how much is done?</summary><p>Yes. While I work, the number of finished pages is updated live in your chat.</p></details>
+    <details><summary>Can I see how much is done?</summary><p>Yes. While I work, the number of finished pages is updated live in your chat, and I upload photos of the completed pages so you can see your work is really being done. Each photo carries your request ID and the date and time.</p></details>
     <details><summary>Where do I collect my finished work?</summary><p>From <b>Knowledge Park 2 Metro Station, Gate No. 2, Greater Noida</b>. <a href="https://www.google.com/maps/search/?api=1&query=Knowledge+Park+2+Metro+Station+Gate+2+Greater+Noida" target="_blank" rel="noopener">Open in Google Maps</a>. We confirm the pickup time with you on WhatsApp. You can also hand over your own copy or register at the same place beforehand.</p></details>
     <details><summary>When does WhatsApp come in?</summary><p>After you accept the final price. A WhatsApp button then appears here so we can finish the order and payment.</p></details>
     <details><summary>How do I come back to my chat?</summary><p>Open this website and log in with the same email. We send you a 6-digit code, and all your requests are listed at the top of this section, on any phone or browser.</p></details>
@@ -493,7 +497,7 @@ input[type=date]{min-width:0;max-width:100%}
   }
   function render(d){
     var msgs = Object.keys(d.chat || {}).sort().map(function(k){return [k, d.chat[k]]}), i = d.info || {};
-    var sig = msgs.length + '|' + JSON.stringify(d.quote || '') + '|' + (d.decision || '') + '|' + JSON.stringify(d.progress || '') + '|' + (d.status || '') + '|' + (d.pdfs || []).length + '|' + (i.phone || '');
+    var sig = msgs.length + '|' + JSON.stringify(d.quote || '') + '|' + (d.decision || '') + '|' + JSON.stringify(d.progress || '') + '|' + (d.status || '') + '|' + (d.pdfs || []).length + '|' + (i.phone || '') + '|' + (d.proof || []).map(function(f){return f.k}).join(',');
     if(sig === lastSig) return; lastSig = sig;
     var st = custStatus(d), good = st === 'Price agreed' || st === 'In progress' || st === 'Delivered' || st === 'Paid';
     $('infoBox').innerHTML = '<b>'+esc(i.subject)+'</b><span class="status'+(good ? ' good' : '')+'">'+esc(st)+'</span><br>'+esc(i.type)+' · '+esc(i.pages)+' pages · deadline '+esc(D.date(i.deadline)) +
@@ -508,6 +512,12 @@ input[type=date]{min-width:0;max-width:100%}
       $('progBox').innerHTML = '<b>Work progress</b><div class="bar" role="progressbar" aria-label="Pages done" aria-valuemin="0" aria-valuemax="'+pg+'" aria-valuenow="'+done+'"><i style="width:'+pct+'%"></i></div>'+
         '<div><b>'+done+' of '+pg+' pages done</b>'+(done >= pg && pg ? ' · All pages are finished' : '')+'</div>'+(pr.note ? '<div class="fine">'+esc(pr.note)+'</div>' : '')+'<div class="fine">Updated '+D.when(pr.t)+'</div>';
     }else{$('progBox').hidden = true; $('progBox').innerHTML = ''}
+    var pf = d.proof || [];
+    if(pf.length){
+      $('proofBox').hidden = false;
+      $('proofBox').innerHTML = '<b>Photos of your completed work</b><div class="fine" style="margin:2px 0 0">Tap a photo to enlarge it. '+pf.length+(pf.length === 1 ? ' photo' : ' photos')+' shared so far.</div><div class="pgrid">'+
+        pf.slice().reverse().map(function(f){return '<figure><img class="pic" data-oid="'+cur+'" data-k="'+esc(f.k)+'" alt="Completed work photo"><figcaption>'+D.when(f.t)+(f.note ? '<br>'+esc(f.note) : '')+'</figcaption></figure>'}).join('')+'</div>';
+    }else{$('proofBox').hidden = true; $('proofBox').innerHTML = ''}
     var t = $('thread'), atEnd = t.scrollHeight - t.scrollTop - t.clientHeight < 80 || !t.children.length;
     t.innerHTML = msgs.length ? msgs.map(function(m){var x = m[1]; return '<div class="b '+(x.who==='cust'?'cust':'admin')+'">'+esc(x.text)+(x.img?'<img class="pic" data-oid="'+cur+'" data-k="'+esc(x.img)+'" alt="Photo">':'')+'<small>'+(x.who==='cust'?'You':'Scribble')+' · '+D.when(x.t)+'</small></div>'}).join('') : '<p class="fine">No messages yet. Say hello, or wait for my price offer.</p>';
     if(atEnd) t.scrollTop = t.scrollHeight;
